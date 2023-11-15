@@ -10,6 +10,7 @@
     export let model: M.editor.IModel;
     export let setting: M.editor.IEditorConstructionOptions = {}, theme: any = '';
     export let message = '';
+    export let lspurl;
     let Monaco: any;
 
     if (preload || browser) onMount(() => {
@@ -19,5 +20,5 @@
 
 {#if Monaco}
     <Monaco bind:ins bind:models bind:active bind:model bind:message on:change
-            {ref} {provider} {setting} {theme}/>
+            {ref} {provider} {setting} {theme} {lspurl}/>
 {/if}

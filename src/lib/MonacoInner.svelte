@@ -5,17 +5,21 @@
 <script lang="ts">
     import {createEventDispatcher, onMount} from "svelte";
     import {Keybind, Power, setTheme} from "$lib/extensions";
+    //import "$lib/extensions/worker.js";
     import * as M from "monaco-editor";
+    import lsp from "$lib/extensions/lsp.js";
 
     const dispatch = createEventDispatcher();
 
     export let ref, ins: M.editor.IStandaloneCodeeditor;
-    export let models = {}, active = 'default', provider = (f) => f('', 'text');
+    export let models = {}, active = 'default',
+        provider = (f, uri) => f('', 'text', uri('inmemory://workspace/file'));
     export let model: M.editor.IModel;
     export let setting = {}, theme: any = '';
     export let message = '';
+    export let lspurl: any;
 
-    $: ins && (async () => model = models[active] = models[active] || await provider(M.editor.createModel))();
+    $: ins && (async () => model = models[active] = models[active] || await provider(M.editor.createModel, M.Uri.parse))();
     $: ins && ins.updateOptions(setting);
     $: ins && theme && setTheme(M.editor, theme);
     $: model && ins.setModel(model);
@@ -31,6 +35,12 @@
         if (_powermode) _powermode?.dispose?.()
         _powermode = setting.power ? new Power(ins) : null;
     }
+
+    $: if (model) (async () => {
+        const language = model.getLanguageId();
+        const url = lspurl && await lspurl(language);
+        if (url) await lsp(language, url);
+    })()
 
     onMount(() => {
         ins = M.editor.create(ref, setting);

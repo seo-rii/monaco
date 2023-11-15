@@ -25,7 +25,7 @@ export default class Power {
     appliedModels: Set<M.editor.IModel> = new Set()
     events: Set<M.IEvent<any> | M.IDisposable> = new Set()
     appliedStyles = new Set()
-    config: any = {size: 20, offset: 0.25, backgroundMode: 'mask'}
+    config: any = {size: 30, offset: 0.1, backgroundMode: 'mask'}
     lastDecorations = new Set()
     _block = false
 
