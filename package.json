@@ -1,7 +1,8 @@
 {
   "name": "@seorii/monaco",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "scripts": {
+    "deploy": "npm run build && npm publish --access=public",
     "dev": "vite dev",
     "build": "vite build && npm run package",
     "preview": "vite preview",

@@ -21,4 +21,6 @@
 {#if Monaco}
     <Monaco bind:ins bind:models bind:active bind:model bind:message on:change
             {ref} {provider} {setting} {theme} {lspurl}/>
+{:else}
+    <slot/>
 {/if}
