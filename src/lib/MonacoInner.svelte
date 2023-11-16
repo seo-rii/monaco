@@ -1,7 +1,7 @@
 <script lang="ts">
     import {createEventDispatcher, onMount} from "svelte";
     import {Keybind, Power, setTheme} from "$lib/extensions";
-    import "$lib/extensions/worker.js";
+    import "./extensions/worker.js";
     import * as M from "monaco-editor";
     import lsp from "$lib/extensions/lsp.js";
 
