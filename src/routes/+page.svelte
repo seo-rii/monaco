@@ -5,6 +5,7 @@
 </script>
 
 <input bind:value={id}>
+{id}
 <input bind:value={lang}>
 <Monaco setting={{
             power: true,
@@ -12,7 +13,7 @@
             renderWhitespace: true,
             lightbulb: {enabled: true},
             fontLigatures: true
-        }} provider={(id) => ['', lang, 'inmemory://workspace/' + id]}
+        }} provider={async (id) => ['', lang, 'inmemory://workspace/' + id]}
         lspurl={(language) => `ws://localhost:2500/${language}`} active={id}/>
 
 <style lang="scss">

@@ -1,6 +1,6 @@
 <script lang="ts">
     import {createEventDispatcher, onMount} from "svelte";
-    import {Keybind, Power, setTheme} from "$lib/extensions";
+    import {Keybind, Power, setTheme, MonacoEnvironment} from "$lib/extensions";
     import * as M from "monaco-editor";
     import lsp from "$lib/extensions/lsp.js";
 
@@ -8,16 +8,23 @@
 
     export let ref, ins: M.editor.IStandaloneCodeeditor;
     export let models = {}, active = 'default',
-        provider = (f, uri) => f('', 'text', uri('inmemory://workspace/file'));
+        provider = async (f, uri) => f('', 'text', uri('inmemory://workspace/file'));
     export let model: M.editor.IModel;
     export let setting = {}, theme: any = '';
     export let message = '';
     export let lspurl: any;
 
-    $: ins && (async () => {
-        if (!models[active]) models[active] = provider(active).then(([code, lang, uri]) => M.editor.createModel(code, lang, M.Uri.parse(uri)))
-        model = await models[active];
-    })();
+    $: if (ins) {
+        if (!models[active]) models[active] = provider(active).then((r) => {
+            try {
+                const [code, lang, uri] = r;
+                return M.editor.createModel(code, lang, M.Uri.parse(uri))
+            } catch (e) {
+
+            }
+        })
+        models[active].then(r => model = r);
+    }
     $: ins && ins.updateOptions(setting);
     $: ins && theme && setTheme(theme);
     $: ins && model && ins.setModel(model);
@@ -41,6 +48,7 @@
     })()
 
     onMount(() => {
+        window.MonacoEnvironment = MonacoEnvironment();
         ins = M.editor.create(ref, {});
         ins.onDidChangeModelContent(() => dispatch('change'));
         return () => ins?.dispose?.();
