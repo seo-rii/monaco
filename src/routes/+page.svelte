@@ -8,7 +8,7 @@
             renderWhitespace: true,
             lightbulb: {enabled: true},
             fontLigatures: true
-        }} provider={(f, uri) => f('', 'python', uri('inmemory://workspace/file'))}
+        }} provider={(f, uri) => f('', 'cpp', uri('inmemory://workspace/file'))}
         lspurl={(language) => `ws://localhost:2500/${language}`}/>
 
 <style lang="scss">
