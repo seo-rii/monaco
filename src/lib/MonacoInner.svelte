@@ -21,7 +21,7 @@
 
     $: ins && (async () => model = models[active] = models[active] || await provider(M.editor.createModel, M.Uri.parse))();
     $: ins && ins.updateOptions(setting);
-    $: ins && theme && setTheme(M.editor, theme);
+    $: ins && theme && setTheme(theme);
     $: model && ins.setModel(model);
 
     let _keybind: any, _powermode: any;
