@@ -18,7 +18,8 @@
         if (!models[active]) models[active] = provider(active).then((r) => {
             try {
                 const [code, lang, uri] = r;
-                return M.editor.createModel(code, lang, M.Uri.parse(uri))
+                const model = M.editor.createModel(code, lang, M.Uri.parse(uri))
+                model.setLanguage(lang);
             } catch (e) {
 
             }
@@ -48,7 +49,14 @@
     })()
 
     onMount(() => {
-        ins = M.editor.create(ref, {});
+        ins = M.editor.create(ref, {
+            value: '',
+            language: 'text',
+            automaticLayout: true,
+            minimap: {
+                enabled: false
+            },
+        });
         ins.onDidChangeModelContent(() => dispatch('change'));
         return () => ins?.dispose?.();
     });
