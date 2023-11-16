@@ -12,7 +12,7 @@
             renderWhitespace: true,
             lightbulb: {enabled: true},
             fontLigatures: true
-        }} provider={(f, uri) => f('', lang, uri('inmemory://workspace/' + id))}
+        }} provider={(id) => ['', lang, 'inmemory://workspace/' + id]}
         lspurl={(language) => `ws://localhost:2500/${language}`} active={id}/>
 
 <style lang="scss">

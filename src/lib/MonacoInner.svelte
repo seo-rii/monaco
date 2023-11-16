@@ -14,10 +14,13 @@
     export let message = '';
     export let lspurl: any;
 
-    $: ins && (async () => model = models[active] = (models[active] || await provider(M.editor.createModel, M.Uri.parse)))();
+    $: ins && (async () => {
+        if (!models[active]) models[active] = provider(active).then(([code, lang, uri]) => M.editor.createModel(code, lang, M.Uri.parse(uri)))
+        model = await models[active];
+    })();
     $: ins && ins.updateOptions(setting);
     $: ins && theme && setTheme(theme);
-    $: model && ins.setModel(model);
+    $: ins && model && ins.setModel(model);
 
     let _keybind: any, _powermode: any;
 
@@ -38,7 +41,7 @@
     })()
 
     onMount(() => {
-        ins = M.editor.create(ref, setting);
+        ins = M.editor.create(ref, {});
         ins.onDidChangeModelContent(() => dispatch('change'));
         return () => ins?.dispose?.();
     });
