@@ -20,11 +20,12 @@
                 const [code, lang, uri] = r;
                 const model = M.editor.createModel(code, lang, M.Uri.parse(uri))
                 model.setLanguage(lang);
+                return model;
             } catch (e) {
 
             }
         })
-        models[active].then(r => model = r);
+        models[active].then(r => ins.setModel(model = r));
     }
     $: ins && ins.updateOptions(setting);
     $: ins && theme && setTheme(theme);
@@ -50,8 +51,8 @@
 
     onMount(() => {
         ins = M.editor.create(ref, {
-            value: '',
-            language: 'text',
+            value: ' ',
+            language: 'plaintext',
             automaticLayout: true,
             minimap: {
                 enabled: false
