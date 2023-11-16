@@ -1,6 +1,6 @@
 <script lang="ts">
     import {createEventDispatcher, onMount} from "svelte";
-    import {Keybind, Power, setTheme, MonacoEnvironment} from "$lib/extensions";
+    import {Keybind, Power, setTheme} from "$lib/extensions";
     import * as M from "monaco-editor";
     import lsp from "$lib/extensions/lsp.js";
 
@@ -48,7 +48,6 @@
     })()
 
     onMount(() => {
-        window.MonacoEnvironment = MonacoEnvironment();
         ins = M.editor.create(ref, {});
         ins.onDidChangeModelContent(() => dispatch('change'));
         return () => ins?.dispose?.();
