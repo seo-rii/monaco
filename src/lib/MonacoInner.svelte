@@ -28,7 +28,7 @@
 
     $: if (model) {
         if (_keybind) _keybind?.dispose?.();
-        _keybind = setting.key ? Keybind[key]?.(ins, message) : null;
+        _keybind = setting.key ? Keybind[setting.key]?.(ins, message) : null;
     }
 
     $: if (model) {
