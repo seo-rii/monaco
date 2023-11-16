@@ -37,7 +37,7 @@ function createLanguageClient(transports: MessageTransports, language: string): 
             documentSelector: [language],
             errorHandler: {
                 error: () => ({action: ErrorAction.Continue}),
-                closed: () => ({action: CloseAction.DoNotRestart})
+                closed: () => ({action: CloseAction.Restart})
             },
             workspaceFolder: {
                 index: 0,

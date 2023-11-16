@@ -43,10 +43,12 @@
         _powermode = setting.power ? new Power(ins) : null;
     }
 
+    let _lsp: any, rlsp = () => _lsp?.();
     $: if (model) (async () => {
+        rlsp();
         const language = model.getLanguageId();
         const url = lspurl && await lspurl(language);
-        if (url) await lsp(language, url);
+        if (url) _lsp = await lsp(language, url);
     })()
 
     onMount(() => {

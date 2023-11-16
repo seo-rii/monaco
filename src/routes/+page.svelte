@@ -1,7 +1,7 @@
 <script lang="ts">
     import Monaco from "$lib/Monaco.svelte";
 
-    let id = "test", lang = "cpp";
+    let id = "test", lang = "python";
 </script>
 
 <input bind:value={id}>
@@ -13,7 +13,7 @@
             renderWhitespace: true,
             lightbulb: {enabled: true},
             fontLigatures: true
-        }} provider={async (id) => ['', lang, 'inmemory://workspace/' + id]}
+        }} provider={async (id) => ['', lang, '/workspace/' + id]}
         lspurl={(language) => `ws://localhost:2500/${language}`} active={id}/>
 
 <style lang="scss">
