@@ -1,15 +1,19 @@
 <script lang="ts">
     import Monaco from "$lib/Monaco.svelte";
+
+    let id = "test", lang = "cpp";
 </script>
 
+<input bind:value={id}>
+<input bind:value={lang}>
 <Monaco setting={{
             power: true,
             automaticLayout: true,
             renderWhitespace: true,
             lightbulb: {enabled: true},
             fontLigatures: true
-        }} provider={(f, uri) => f('', 'cpp', uri('inmemory://workspace/file'))}
-        lspurl={(language) => `ws://localhost:2500/${language}`}/>
+        }} provider={(f, uri) => f('', lang, uri('inmemory://workspace/' + id))}
+        lspurl={(language) => `ws://localhost:2500/${language}`} active={id}/>
 
 <style lang="scss">
   :global(html, body, body > div) {

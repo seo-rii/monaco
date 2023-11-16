@@ -15,7 +15,7 @@
     export let message = '';
     export let lspurl: any;
 
-    $: ins && (async () => model = models[active] = models[active] || await provider(M.editor.createModel, M.Uri.parse))();
+    $: ins && (async () => model = models[active] = (models[active] || await provider(M.editor.createModel, M.Uri.parse)))();
     $: ins && ins.updateOptions(setting);
     $: ins && theme && setTheme(theme);
     $: model && ins.setModel(model);
