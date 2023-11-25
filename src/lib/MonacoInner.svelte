@@ -1,3 +1,7 @@
+<script lang="ts" context="module">
+    let _models = {};
+</script>
+
 <script lang="ts">
     import {createEventDispatcher, onMount} from "svelte";
     import {Keybind, Power, setTheme} from "$lib/extensions";
@@ -7,8 +11,8 @@
     const dispatch = createEventDispatcher();
 
     export let ref, ins: M.editor.IStandaloneCodeeditor;
-    export let models = {}, active = 'default',
-        provider = async (f, uri) => f('', 'text', uri('inmemory://workspace/file'));
+    export let models = _models, active = 'default',
+        provider = async (f, uri) => f('', 'text', uri('/workspace/file'));
     export let model: M.editor.IModel;
     export let setting = {}, theme: any = '';
     export let message = '';
@@ -61,7 +65,10 @@
             },
         });
         ins.onDidChangeModelContent(() => dispatch('change'));
-        return () => ins?.dispose?.();
+        return () => {
+            ins?.dispose?.();
+            rlsp();
+        }
     });
 </script>
 
