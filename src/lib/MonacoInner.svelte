@@ -1,17 +1,14 @@
-<script lang="ts" context="module">
-    let _models = {};
-</script>
-
 <script lang="ts">
     import {createEventDispatcher, onMount} from "svelte";
     import {Keybind, Power, setTheme} from "$lib/extensions";
     import * as M from "monaco-editor";
     import lsp from "$lib/extensions/lsp.js";
+    import {browser} from "$app/environment";
 
     const dispatch = createEventDispatcher();
 
     export let ref, ins: M.editor.IStandaloneCodeeditor;
-    export let models = _models, active = 'default',
+    export let models = {}, active = 'default',
         provider = async (f, uri) => f('', 'text', uri('/workspace/file'));
     export let model: M.editor.IModel;
     export let setting = {}, theme: any = '';
@@ -56,6 +53,7 @@
     })()
 
     onMount(() => {
+        if (browser && Object.keys(models).length === 0) models = window.__models__ = window.__models__ || {};
         ins = M.editor.create(ref, {
             value: ' ',
             language: 'plaintext',
@@ -66,6 +64,7 @@
         });
         ins.onDidChangeModelContent(() => dispatch('change'));
         return () => {
+            window.__models__ = models;
             ins?.dispose?.();
             rlsp();
         }
