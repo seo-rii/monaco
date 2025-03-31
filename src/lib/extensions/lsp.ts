@@ -66,19 +66,30 @@ function createLanguageClient(
 	});
 }
 
-export default async function (language: keyof typeof languages, url: string) {
+export default async function (
+	language: keyof typeof languages,
+	fr: string | { reader: any; writer: any }
+) {
 	MonacoServices.install(M);
 	const { default: ReconnectingWebsocket } = await import('reconnecting-websocket');
-	const webSocket = new ReconnectingWebsocket(url) as WebSocket;
-	webSocket.onopen = () => {
-		const socket = toSocket(webSocket);
-		const reader = new WebSocketMessageReader(socket);
-		const writer = new WebSocketMessageWriter(socket);
+	if (typeof fr === 'string') {
+		const webSocket = new ReconnectingWebsocket(fr) as WebSocket;
+		webSocket.onopen = () => {
+			const socket = toSocket(webSocket);
+			const reader = new WebSocketMessageReader(socket);
+			const writer = new WebSocketMessageWriter(socket);
+			const languageClient = createLanguageClient({ reader, writer }, language);
+			languageClient.start();
+			reader.onClose(() => languageClient.stop());
+		};
+		return () => {
+			webSocket.close();
+		};
+	} else {
+		const { reader, writer } = fr;
 		const languageClient = createLanguageClient({ reader, writer }, language);
 		languageClient.start();
 		reader.onClose(() => languageClient.stop());
-	};
-	return () => {
-		webSocket.close();
-	};
+		return () => {};
+	}
 }

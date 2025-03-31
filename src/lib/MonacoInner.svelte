@@ -11,7 +11,7 @@
 		active: string;
 		provider?: (
 			id: string,
-			uri?: (path: string) => string
+			uri?: (path: string | { reader: any; writer: any }) => string
 		) => Promise<[string, string, string]>;
 		model: M.editor.IModel | undefined;
 		setting: M.editor.IEditorConstructionOptions & any;
