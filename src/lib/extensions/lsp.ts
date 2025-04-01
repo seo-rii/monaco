@@ -66,30 +66,39 @@ function createLanguageClient(
 	});
 }
 
+let svcInstalled = false;
+
 export default async function (
 	language: keyof typeof languages,
 	fr: string | { reader: any; writer: any }
 ) {
-	MonacoServices.install(M);
+	if (!svcInstalled) {
+		MonacoServices.install(M);
+		svcInstalled = true;
+	}
 	const { default: ReconnectingWebsocket } = await import('reconnecting-websocket');
 	if (typeof fr === 'string') {
 		const webSocket = new ReconnectingWebsocket(fr) as WebSocket;
+		let languageClient: MonacoLanguageClient;
 		webSocket.onopen = () => {
 			const socket = toSocket(webSocket);
 			const reader = new WebSocketMessageReader(socket);
 			const writer = new WebSocketMessageWriter(socket);
-			const languageClient = createLanguageClient({ reader, writer }, language);
+			languageClient = createLanguageClient({ reader, writer }, language);
 			languageClient.start();
 			reader.onClose(() => languageClient.stop());
 		};
 		return () => {
 			webSocket.close();
+			languageClient.stop();
 		};
 	} else {
 		const { reader, writer } = fr;
 		const languageClient = createLanguageClient({ reader, writer }, language);
 		languageClient.start();
 		reader.onClose(() => languageClient.stop());
-		return () => {};
+		return () => {
+			languageClient.stop();
+		};
 	}
 }
