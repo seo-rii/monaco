@@ -13,13 +13,12 @@
 		ref?: HTMLElement | null;
 		model?: M.editor.IModel;
 		models?: Record<string, Promise<M.editor.IModel | undefined>>;
-		ins?: M.editor.IStandaloneCodeEditor;
 		onchange?: (m: M.editor.IModel) => any;
+		onload?: (m: M.editor.IStandaloneCodeEditor) => any;
 	}
 
 	let {
 		ref = $bindable(null),
-		ins = $bindable(null as any),
 		models = $bindable({}),
 		active = $bindable('default'),
 		model = $bindable(),
@@ -29,7 +28,8 @@
 		theme = '',
 		lspurl,
 		children,
-		onchange
+		onchange,
+		onload,
 	}: IMonaco = $props();
 
 	let Monaco: typeof import('./MonacoInner.svelte').default | null = $state(null as any);
@@ -41,7 +41,6 @@
 
 {#if Monaco}
 	<Monaco
-		bind:ins
 		bind:models
 		bind:active
 		bind:model
@@ -52,6 +51,7 @@
 		{theme}
 		{lspurl}
 		{onchange}
+		{onload}
 	/>
 {:else}
 	{@render children?.()}

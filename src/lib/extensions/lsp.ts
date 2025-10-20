@@ -4,7 +4,7 @@ import {
 	ErrorAction,
 	MonacoServices,
 	MessageTransports
-} from 'monaco-languageclient';
+} from '@hancomac/monaco-languageclient';
 import {
 	toSocket,
 	WebSocketMessageReader,

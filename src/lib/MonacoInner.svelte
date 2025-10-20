@@ -6,7 +6,6 @@
 
 	interface IMonacoInner {
 		ref: HTMLElement | null;
-		ins: M.editor.IStandaloneCodeEditor;
 		models: Record<string, Promise<M.editor.IModel | undefined>>;
 		active: string;
 		provider?: (
@@ -19,11 +18,11 @@
 		message: HTMLElement | null;
 		lspurl?: (language: string) => string;
 		onchange?: (m: M.editor.IModel) => any;
+		onload?: (m: M.editor.IStandaloneCodeEditor) => any;
 	}
 
 	let {
 		ref = $bindable(),
-		ins = $bindable(),
 		models = $bindable(),
 		active = $bindable(),
 		model = $bindable(),
@@ -32,8 +31,11 @@
 		setting,
 		theme,
 		lspurl,
-		onchange
+		onchange,
+		onload
 	}: IMonacoInner = $props();
+
+	let ins: M.editor.IStandaloneCodeEditor | undefined;
 
 	$effect(() => ins?.updateOptions(setting));
 
@@ -47,16 +49,19 @@
 
 	$effect(() => {
 		if (ins && provider) {
-			if (!models[active])
-				models[active] = provider(active).then((r) => {
-					try {
-						const [code, lang, uri] = r;
-						const model = M.editor.createModel(code, lang, M.Uri.parse(uri));
-						M.editor.setModelLanguage(model, lang);
-						return model;
-					} catch (e) {}
+			if (!models[active]) {
+				untrack(() => {
+					models[active] = provider(active).then((r) => {
+						try {
+							const [code, lang, uri] = r;
+							const model = M.editor.createModel(code, lang, M.Uri.parse(uri));
+							M.editor.setModelLanguage(model, lang);
+							return model;
+						} catch (e) {}
+					});
+					models[active].then((r) => ins?.setModel((model = r as any)));
 				});
-			models[active].then((r) => ins.setModel((model = r as any)));
+			}
 		}
 	});
 
@@ -80,7 +85,7 @@
 
 	$effect(() => {
 		if (model) {
-			untrack(() => _lsp)?.();
+			untrack(() => _lsp?.());
 			const language = model.getLanguageId();
 			(async () => {
 				const url = lspurl && (await lspurl(language));
@@ -99,6 +104,7 @@
 				enabled: false
 			}
 		});
+		onload?.(ins);
 		ins.onDidChangeModelContent(() => {
 			if (model) onchange?.(model);
 		});

@@ -5,7 +5,7 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	resolve: {
 		alias: {
-			vscode: 'monaco-languageclient/vscode-compatibility'
+			vscode: '@hancomac/monaco-languageclient/vscode-compatibility'
 		}
 	},
 	optimizeDeps: {
@@ -16,5 +16,9 @@ export default defineConfig({
 			`monaco-editor/esm/vs/language/typescript/ts.worker`,
 			`monaco-editor/esm/vs/editor/editor.worker`
 		]
+	},
+
+	server: {
+		allowedHosts: true
 	}
 });
