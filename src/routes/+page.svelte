@@ -21,7 +21,7 @@
 	active={id}
 />
 
-<style lang="scss">
+<style>
 	:global(html, body, body > div) {
 		margin: 0;
 		padding: 0;

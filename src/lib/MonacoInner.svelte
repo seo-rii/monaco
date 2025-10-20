@@ -117,7 +117,7 @@
 
 <main bind:this={ref}></main>
 
-<style lang="scss">
+<style>
 	main {
 		width: 100%;
 		height: 100%;
