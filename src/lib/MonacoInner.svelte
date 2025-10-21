@@ -36,19 +36,22 @@
 	}: IMonacoInner = $props();
 
 	let ins: M.editor.IStandaloneCodeEditor | undefined;
-
-	$effect(() => ins?.updateOptions(setting));
+	let loaded = $state(false);
 
 	$effect(() => {
-		if (ins && theme) setTheme(theme);
+		if (loaded) ins?.updateOptions(setting);
 	});
 
 	$effect(() => {
-		if (ins && model) ins.setModel(model);
+		if (loaded && theme) setTheme(theme);
 	});
 
 	$effect(() => {
-		if (ins && provider) {
+		if (loaded && ins && model) ins.setModel(model);
+	});
+
+	$effect(() => {
+		if (loaded && provider) {
 			if (!models[active]) {
 				untrack(() => {
 					models[active] = provider(active).then((r) => {
@@ -65,23 +68,22 @@
 		}
 	});
 
-	let _keybind = $state<any>(),
-		_powermode = $state<any>();
+	let _keybind: any, _powermode: any;
 
 	$effect(() => {
 		_keybind =
-			ins && model && message && setting.key
+			loaded && ins && model && message && setting.key
 				? Keybind[setting.key as keyof typeof Keybind]?.(ins, message)
 				: null;
 		return () => _keybind?.dispose?.();
 	});
 
 	$effect(() => {
-		_powermode = ins && model && setting.power ? new Power(ins) : null;
+		_powermode = loaded && ins && model && setting.power ? new Power(ins) : null;
 		return () => _powermode?.dispose?.();
 	});
 
-	let _lsp = $state<any>();
+	let _lsp: any;
 
 	$effect(() => {
 		if (model) {
@@ -104,10 +106,13 @@
 				enabled: false
 			}
 		});
-		onload?.(ins);
 		ins.onDidChangeModelContent(() => {
 			if (model) onchange?.(model);
 		});
+
+		loaded = true;
+		onload?.(ins);
+
 		return () => {
 			ins?.dispose?.();
 			ins = null as any;
