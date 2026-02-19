@@ -1,6 +1,6 @@
 {
 	"name": "@seorii/monaco",
-	"version": "0.0.27",
+	"version": "0.0.28",
 	"scripts": {
 		"deploy": "npm run build && npm publish --access=public",
 		"dev": "vite dev",
@@ -25,23 +25,23 @@
 		"!dist/**/*.spec.*"
 	],
 	"devDependencies": {
-		"@sveltejs/adapter-auto": "^7.0.0",
-		"@sveltejs/kit": "^2.47.2",
-		"@sveltejs/package": "^2.5.4",
-		"@sveltejs/vite-plugin-svelte": "^6.2.1",
-		"eslint": "^9.38.0",
+		"@sveltejs/adapter-auto": "^7.0.1",
+		"@sveltejs/kit": "^2.52.2",
+		"@sveltejs/package": "^2.5.7",
+		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"eslint": "^10.0.0",
 		"eslint-config-prettier": "^10.1.8",
-		"eslint-plugin-svelte": "^3.12.5",
+		"eslint-plugin-svelte": "^3.15.0",
 		"monaco-emacs": "^0.3.0",
-		"monaco-vim": "^0.4.2",
-		"prettier": "^3.6.2",
-		"prettier-plugin-svelte": "^3.4.0",
-		"publint": "^0.3.15",
-		"svelte": "^5.41.1",
-		"svelte-check": "^4.3.3",
+		"monaco-vim": "^0.4.4",
+		"prettier": "^3.8.1",
+		"prettier-plugin-svelte": "^3.5.0",
+		"publint": "^0.3.17",
+		"svelte": "^5.53.0",
+		"svelte-check": "^4.4.1",
 		"tslib": "^2.8.1",
 		"typescript": "^5.9.3",
-		"vite": "^7.1.11"
+		"vite": "^7.3.1"
 	},
 	"svelte": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -52,7 +52,7 @@
 	"dependencies": {
 		"@codingame/monaco-jsonrpc": "^0.4.1",
 		"@hancomac/monaco-languageclient": "^1.1.0",
-		"monaco-editor": "^0.54.0",
+		"monaco-editor": "^0.55.1",
 		"monaco-editor-workers": "^0.45.0",
 		"reconnecting-websocket": "^4.4.0"
 	}
