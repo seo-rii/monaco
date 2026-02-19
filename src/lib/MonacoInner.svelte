@@ -51,21 +51,31 @@
 	});
 
 	$effect(() => {
-		if (loaded && provider) {
-			if (!models[active]) {
-				untrack(() => {
-					models[active] = provider(active).then((r) => {
-						try {
-							const [code, lang, uri] = r;
-							const model = M.editor.createModel(code, lang, M.Uri.parse(uri));
-							M.editor.setModelLanguage(model, lang);
-							return model;
-						} catch (e) {}
-					});
-					models[active].then((r) => ins?.setModel((model = r as any)));
+		if (!loaded || !provider || !ins) return;
+		const key = active;
+		if (!models[key]) {
+			untrack(() => {
+				models[key] = provider(key).then((r) => {
+					try {
+						const [code, lang, uri] = r;
+						const model = M.editor.createModel(code, lang, M.Uri.parse(uri));
+						M.editor.setModelLanguage(model, lang);
+						return model;
+					} catch (e) {}
 				});
-			}
+			});
 		}
+		const modelPromise = models[key];
+		if (!modelPromise) return;
+		let cancelled = false;
+		modelPromise.then((nextModel) => {
+			if (cancelled || !nextModel) return;
+			if (!ins || active !== key) return;
+			model = nextModel as any;
+		});
+		return () => {
+			cancelled = true;
+		};
 	});
 
 	let _keybind: any, _powermode: any;
@@ -83,17 +93,30 @@
 		return () => _powermode?.dispose?.();
 	});
 
-	let _lsp: any;
+	let _lsp: (() => void) | undefined;
 
 	$effect(() => {
-		if (model) {
-			untrack(() => _lsp?.());
-			const language = model.getLanguageId();
-			(async () => {
+		if (!loaded || !model) return;
+		const language = model.getLanguageId();
+		let cancelled = false;
+		(async () => {
+			try {
 				const url = lspurl && (await lspurl(language));
-				if (url) _lsp = await lsp(language as any, url);
-			})();
-		}
+				if (!url || cancelled) return;
+				const dispose = await lsp(language as any, url);
+				if (cancelled) {
+					dispose?.();
+					return;
+				}
+				_lsp = dispose;
+			} catch {}
+		})();
+		return () => {
+			cancelled = true;
+			const dispose = untrack(() => _lsp);
+			_lsp = undefined;
+			dispose?.();
+		};
 	});
 
 	$effect(() => {
@@ -114,8 +137,9 @@
 		onload?.(ins);
 
 		return () => {
+			loaded = false;
 			ins?.dispose?.();
-			ins = null as any;
+			ins = undefined;
 		};
 	});
 </script>
