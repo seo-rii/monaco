@@ -79,18 +79,26 @@ export default async function (
 	const { default: ReconnectingWebsocket } = await import('reconnecting-websocket');
 	if (typeof fr === 'string') {
 		const webSocket = new ReconnectingWebsocket(fr) as WebSocket;
-		let languageClient: MonacoLanguageClient;
+		let disposed = false;
+		let languageClient: MonacoLanguageClient | undefined;
 		webSocket.onopen = () => {
+			if (disposed) return;
 			const socket = toSocket(webSocket);
 			const reader = new WebSocketMessageReader(socket);
 			const writer = new WebSocketMessageWriter(socket);
-			languageClient = createLanguageClient({ reader, writer }, language);
-			languageClient.start();
-			reader.onClose(() => languageClient.stop());
+			const client = createLanguageClient({ reader, writer }, language);
+			languageClient = client;
+			client.start();
+			reader.onClose(() => {
+				if (languageClient === client) languageClient = undefined;
+				client.stop();
+			});
 		};
 		return () => {
+			disposed = true;
 			webSocket.close();
-			languageClient.stop();
+			languageClient?.stop();
+			languageClient = undefined;
 		};
 	} else {
 		const { reader, writer } = fr;

@@ -37,6 +37,7 @@
 
 	let ins: M.editor.IStandaloneCodeEditor | undefined;
 	let loaded = $state(false);
+	const ownedModels = new Map<string, M.editor.IModel>();
 
 	$effect(() => {
 		if (loaded) ins?.updateOptions(setting);
@@ -58,9 +59,16 @@
 				models[key] = provider(key).then((r) => {
 					try {
 						const [code, lang, uri] = r;
-						const model = M.editor.createModel(code, lang, M.Uri.parse(uri));
-						M.editor.setModelLanguage(model, lang);
-						return model;
+						const modelUri = M.Uri.parse(uri);
+						const existingModel = M.editor.getModel(modelUri);
+						if (existingModel) {
+							M.editor.setModelLanguage(existingModel, lang);
+							existingModel.setValue(code);
+							return existingModel;
+						}
+						const nextModel = M.editor.createModel(code, lang, modelUri);
+						ownedModels.set(key, nextModel);
+						return nextModel;
 					} catch (e) {}
 				});
 			});
@@ -75,6 +83,16 @@
 		});
 		return () => {
 			cancelled = true;
+		};
+	});
+
+	$effect(() => {
+		return () => {
+			for (const [key, ownedModel] of ownedModels) {
+				if (!ownedModel.isDisposed()) ownedModel.dispose();
+				if (models[key]) delete models[key];
+			}
+			ownedModels.clear();
 		};
 	});
 

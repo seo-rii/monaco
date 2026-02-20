@@ -23,7 +23,7 @@ const filters = [
 export default class Power {
 	editor: M.editor.IStandaloneCodeEditor;
 	appliedModels: Set<M.editor.IModel> = new Set();
-	events: Set<M.IEvent<any> | M.IDisposable> = new Set();
+	events: Set<M.IDisposable> = new Set();
 	appliedStyles = new Set();
 	config: any = { size: 30, offset: 0.1, backgroundMode: 'mask' };
 	lastDecorations = new Set();
@@ -32,10 +32,10 @@ export default class Power {
 	constructor(editor: M.editor.IStandaloneCodeEditor) {
 		this.editor = editor;
 		this.registerModel();
-		editor.onDidChangeModel(this.registerModel);
+		this.events.add(editor.onDidChangeModel(this.registerModel));
 	}
 
-	registerModel() {
+	registerModel = () => {
 		const model = <M.editor.ITextModel>this.editor?.getModel?.();
 		if (!model) return;
 		if (this.appliedModels.has(model)) return;
@@ -66,15 +66,16 @@ export default class Power {
 			}
 		});
 		this.events.add(event);
-	}
+	};
 
 	dispose() {
 		this._block = true;
-		setTimeout(() => {
-			for (const event of this.events) {
-				(<M.IDisposable>event)?.dispose?.();
-			}
-		});
+		for (const event of this.events) {
+			event.dispose?.();
+		}
+		this.events.clear();
+		this.appliedModels.clear();
+		this.lastDecorations.clear();
 	}
 
 	getExplosionDecoration(position: M.Range) {
