@@ -100,14 +100,14 @@
 
 	$effect(() => {
 		_keybind =
-			loaded && ins && model && message && setting.key
+			loaded && ins && message && setting.key
 				? Keybind[setting.key as keyof typeof Keybind]?.(ins, message)
 				: null;
 		return () => _keybind?.dispose?.();
 	});
 
 	$effect(() => {
-		_powermode = loaded && ins && model && setting.power ? new Power(ins) : null;
+		_powermode = loaded && ins && setting.power ? new Power(ins) : null;
 		return () => _powermode?.dispose?.();
 	});
 

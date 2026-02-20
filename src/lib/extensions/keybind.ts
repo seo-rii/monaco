@@ -2,6 +2,38 @@ import type Monaco from 'monaco-editor';
 
 let emacsExtensionLoader: Promise<any> | undefined;
 
+const loadScriptOnce = (url: string) =>
+	new Promise<void>((resolve, reject) => {
+		if (typeof document === 'undefined') {
+			resolve();
+			return;
+		}
+		const existing = document.querySelector<HTMLScriptElement>(
+			`script[data-seorii-monaco-emacs="true"][src="${url}"]`
+		);
+		if (existing) {
+			if (existing.dataset.loaded === 'true') {
+				resolve();
+				return;
+			}
+			const onLoad = () => resolve();
+			const onError = () => reject(new Error('Failed to load monaco-emacs bundle'));
+			existing.addEventListener('load', onLoad, { once: true });
+			existing.addEventListener('error', onError, { once: true });
+			return;
+		}
+		const script = document.createElement('script');
+		script.src = url;
+		script.async = true;
+		script.dataset.seoriiMonacoEmacs = 'true';
+		script.onload = () => {
+			script.dataset.loaded = 'true';
+			resolve();
+		};
+		script.onerror = () => reject(new Error('Failed to load monaco-emacs bundle'));
+		document.head.append(script);
+	});
+
 const loadEmacsExtension = async () => {
 	const g = globalThis as any;
 	if (g.MonacoEmacs?.EmacsExtension) return g.MonacoEmacs.EmacsExtension;
@@ -14,16 +46,7 @@ const loadEmacsExtension = async () => {
 			]);
 			if (!g.monaco) g.monaco = monaco;
 			if (!g.MonacoEmacs) {
-				if (typeof document === 'undefined') return undefined;
-				await new Promise<void>((resolve, reject) => {
-					const script = document.createElement('script');
-					script.src = emacsUrl;
-					script.async = true;
-					script.dataset.seoriiMonacoEmacs = 'true';
-					script.onload = () => resolve();
-					script.onerror = () => reject(new Error('Failed to load monaco-emacs bundle'));
-					document.head.append(script);
-				});
+				await loadScriptOnce(emacsUrl);
 			}
 			return g.MonacoEmacs?.EmacsExtension || g.MonacoEmacs?.default;
 		})().finally(() => {
