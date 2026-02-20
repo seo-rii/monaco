@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Keybind, Power, setTheme } from '$lib/extensions';
+	import { Keybind, setTheme } from '$lib/extensions';
 	import * as M from 'monaco-editor';
 	import lsp from '$lib/extensions/lsp.js';
 	import { untrack } from 'svelte';
@@ -107,8 +107,31 @@
 	});
 
 	$effect(() => {
-		_powermode = loaded && ins && setting.power ? new Power(ins) : null;
-		return () => _powermode?.dispose?.();
+		if (!loaded || !ins || !setting.power) {
+			_powermode?.dispose?.();
+			_powermode = null;
+			return;
+		}
+
+		let cancelled = false;
+		void import('$lib/extensions/power.js')
+			.then(({ default: Power }) => {
+				if (cancelled || !ins || !setting.power) return;
+				const nextPower = new Power(ins);
+				if (cancelled) {
+					nextPower.dispose?.();
+					return;
+				}
+				_powermode = nextPower;
+			})
+			.catch(() => {});
+
+		return () => {
+			cancelled = true;
+			const power = _powermode;
+			_powermode = null;
+			power?.dispose?.();
+		};
 	});
 
 	let _lsp: (() => void) | undefined;
