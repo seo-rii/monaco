@@ -1,14 +1,16 @@
 import * as M from 'monaco-editor';
 import type {
+	IMonacoDiffProviderResult,
+	IMonacoDiffSourcePair,
+	IMonacoModelSource,
 	IMonacoSnippet,
 	IMonacoSnippetLoader,
 	IMonacoSnippetMap,
 	IMonacoSnippetRegister
-} from '$lib/Monaco.svelte';
+} from '$lib/MonacoTypes.js';
 
 export type MonacoOnError = (error: Error, context: string) => void;
 export type MonacoErrorReporter = (error: unknown, context: string) => void;
-export type MonacoModelSource = [code: string, language: string, uri: string];
 
 export const normalizeError = (error: unknown): Error => {
 	if (error instanceof Error) return error;
@@ -40,7 +42,7 @@ export const createErrorReporter = (
 };
 
 export const getOrCreateTextModel = (
-	source: MonacoModelSource
+	source: IMonacoModelSource
 ): { model: M.editor.IModel; created: boolean } => {
 	const [code, language, uri] = source;
 	const modelUri = M.Uri.parse(uri);
@@ -53,6 +55,45 @@ export const getOrCreateTextModel = (
 	return {
 		model: M.editor.createModel(code, language, modelUri),
 		created: true
+	};
+};
+
+export const toDiffSourcePair = (value: IMonacoDiffProviderResult): IMonacoDiffSourcePair => {
+	if (Array.isArray(value)) {
+		const [original, modified] = value;
+		return { original, modified };
+	}
+	return value;
+};
+
+export interface IMonacoOwnedTextModelRegistry {
+	resolve(source: IMonacoModelSource, ownedModelKey: string, activeKey: string): M.editor.IModel;
+	dispose(models: Record<string, unknown>): void;
+}
+
+export const createOwnedTextModelRegistry = (): IMonacoOwnedTextModelRegistry => {
+	const ownedModels = new Map<string, M.editor.IModel>();
+	const ownedModelKeys = new Set<string>();
+
+	return {
+		resolve(source, ownedModelKey, activeKey) {
+			const resolvedModel = getOrCreateTextModel(source);
+			if (resolvedModel.created) {
+				ownedModels.set(ownedModelKey, resolvedModel.model);
+				ownedModelKeys.add(activeKey);
+			}
+			return resolvedModel.model;
+		},
+		dispose(models) {
+			for (const ownedModel of ownedModels.values()) {
+				if (!ownedModel.isDisposed()) ownedModel.dispose();
+			}
+			for (const key of ownedModelKeys) {
+				delete models[key];
+			}
+			ownedModels.clear();
+			ownedModelKeys.clear();
+		}
 	};
 };
 

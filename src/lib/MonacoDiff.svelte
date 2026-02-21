@@ -1,19 +1,13 @@
 <script lang="ts">
 	import type * as M from 'monaco-editor';
 	import type { Snippet } from 'svelte';
-	import type { IMonacoSnippetLoader, IMonacoSnippetMap } from '$lib/Monaco.svelte';
+	import type {
+		IMonacoDiffProviderResult,
+		IMonacoSnippetLoader,
+		IMonacoSnippetMap
+	} from '$lib/MonacoTypes.js';
 
 	export type IMonacoDiffEditorSide = 'original' | 'modified';
-	export type IMonacoModelSource = [code: string, language: string, uri: string];
-
-	export interface IMonacoDiffSourcePair {
-		original: IMonacoModelSource;
-		modified: IMonacoModelSource;
-	}
-
-	export type IMonacoDiffProviderResult =
-		| IMonacoDiffSourcePair
-		| [original: IMonacoModelSource, modified: IMonacoModelSource];
 
 	export interface IMonacoDiffSetting extends M.editor.IStandaloneDiffEditorConstructionOptions {
 		/** Enable vim or emacs keybinding mode on modified editor */

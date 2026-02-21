@@ -1,20 +1,16 @@
 <script lang="ts">
 	import { Keybind, setTheme } from '$lib/extensions';
 	import {
+		createOwnedTextModelRegistry,
 		createErrorReporter,
 		createSnippetRegistry,
-		getOrCreateTextModel,
 		setModelMarkers
 	} from '$lib/MonacoBase.js';
 	import * as M from 'monaco-editor';
 	import lsp from '$lib/extensions/lsp.js';
 	import { untrack } from 'svelte';
-	import type {
-		IMonacoInputEvent,
-		IMonacoSetting,
-		IMonacoSnippetLoader,
-		IMonacoSnippetMap
-	} from '$lib/Monaco.svelte';
+	import type { IMonacoInputEvent, IMonacoSetting } from '$lib/Monaco.svelte';
+	import type { IMonacoSnippetLoader, IMonacoSnippetMap } from '$lib/MonacoTypes.js';
 
 	interface IMonacoInner {
 		ref: HTMLElement | null;
@@ -66,7 +62,7 @@
 
 	let ins: M.editor.IStandaloneCodeEditor | undefined;
 	let loaded = $state(false);
-	const ownedModels = new Map<string, M.editor.IModel>();
+	const ownedModelRegistry = createOwnedTextModelRegistry();
 	const reportError = createErrorReporter('Monaco', () => onerror);
 
 	const getActiveModel = (): M.editor.IModel | undefined => {
@@ -192,9 +188,7 @@
 			untrack(() => {
 				models[key] = provider(key).then((r) => {
 					try {
-						const resolvedModel = getOrCreateTextModel(r);
-						if (resolvedModel.created) ownedModels.set(key, resolvedModel.model);
-						return resolvedModel.model;
+						return ownedModelRegistry.resolve(r, key, key);
 					} catch (e) {
 						reportError(e, 'Failed to create model');
 					}
@@ -215,13 +209,7 @@
 	});
 
 	$effect(() => {
-		return () => {
-			for (const [key, ownedModel] of ownedModels) {
-				if (!ownedModel.isDisposed()) ownedModel.dispose();
-				delete models[key];
-			}
-			ownedModels.clear();
-		};
+		return () => ownedModelRegistry.dispose(models);
 	});
 
 	let _keybind: M.IDisposable | null | undefined = null;

@@ -1,24 +1,26 @@
 <script lang="ts">
 	import { Keybind, setTheme } from '$lib/extensions';
 	import {
+		createOwnedTextModelRegistry,
 		createErrorReporter,
 		createSnippetRegistry,
-		getOrCreateTextModel,
-		setModelMarkers
+		setModelMarkers,
+		toDiffSourcePair
 	} from '$lib/MonacoBase.js';
 	import * as M from 'monaco-editor';
 	import lsp from '$lib/extensions/lsp.js';
 	import { untrack } from 'svelte';
-	import type { IMonacoSnippetLoader, IMonacoSnippetMap } from '$lib/Monaco.svelte';
+	import type {
+		IMonacoDiffProviderResult,
+		IMonacoSnippetLoader,
+		IMonacoSnippetMap
+	} from '$lib/MonacoTypes.js';
 	import type {
 		IMonacoDiffCursorEvent,
 		IMonacoDiffEditorSide,
 		IMonacoDiffFocusEvent,
 		IMonacoDiffInputEvent,
-		IMonacoDiffProviderResult,
-		IMonacoDiffSetting,
-		IMonacoDiffSourcePair,
-		IMonacoModelSource
+		IMonacoDiffSetting
 	} from '$lib/MonacoDiff.svelte';
 
 	interface IMonacoDiffInner {
@@ -75,8 +77,7 @@
 
 	let ins: M.editor.IStandaloneDiffEditor | undefined;
 	let loaded = $state(false);
-	const ownedModels = new Map<string, M.editor.IModel>();
-	const ownedModelKeys = new Set<string>();
+	const ownedModelRegistry = createOwnedTextModelRegistry();
 	const reportError = createErrorReporter('MonacoDiff', () => onerror);
 
 	const sideEditorList = (): Array<[IMonacoDiffEditorSide, M.editor.IStandaloneCodeEditor]> => {
@@ -125,27 +126,6 @@
 		}
 	};
 
-	const toSourcePair = (value: IMonacoDiffProviderResult): IMonacoDiffSourcePair => {
-		if (Array.isArray(value)) {
-			const [original, modified] = value;
-			return { original, modified };
-		}
-		return value;
-	};
-
-	const getOrCreateModel = (
-		source: IMonacoModelSource,
-		ownedModelKey: string,
-		activeKey: string
-	) => {
-		const resolvedModel = getOrCreateTextModel(source);
-		if (resolvedModel.created) {
-			ownedModels.set(ownedModelKey, resolvedModel.model);
-			ownedModelKeys.add(activeKey);
-		}
-		return resolvedModel.model;
-	};
-
 	$effect(() => {
 		if (!loaded || !ins) return;
 		const readOnly = readonlyProp ?? setting.readOnly;
@@ -171,10 +151,10 @@
 			untrack(() => {
 				models[key] = provider(key).then((result) => {
 					try {
-						const { original, modified } = toSourcePair(result);
+						const { original, modified } = toDiffSourcePair(result);
 						return {
-							original: getOrCreateModel(original, `${key}:original`, key),
-							modified: getOrCreateModel(modified, `${key}:modified`, key)
+							original: ownedModelRegistry.resolve(original, `${key}:original`, key),
+							modified: ownedModelRegistry.resolve(modified, `${key}:modified`, key)
 						};
 					} catch (e) {
 						reportError(e, 'Failed to create diff model');
@@ -196,16 +176,7 @@
 	});
 
 	$effect(() => {
-		return () => {
-			for (const ownedModel of ownedModels.values()) {
-				if (!ownedModel.isDisposed()) ownedModel.dispose();
-			}
-			for (const key of ownedModelKeys) {
-				delete models[key];
-			}
-			ownedModels.clear();
-			ownedModelKeys.clear();
-		};
+		return () => ownedModelRegistry.dispose(models);
 	});
 
 	$effect(() => {

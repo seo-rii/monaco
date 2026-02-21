@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type * as M from 'monaco-editor';
 	import type { Snippet } from 'svelte';
+	import type { IMonacoSnippetLoader, IMonacoSnippetMap } from '$lib/MonacoTypes.js';
 
 	export interface IMonacoSetting extends M.editor.IEditorConstructionOptions {
 		/** Enable vim or emacs keybinding mode */
@@ -15,23 +16,6 @@
 		reason: 'change' | 'readonly-attempt';
 		event?: M.editor.IModelContentChangedEvent;
 	}
-
-	export interface IMonacoSnippet {
-		label: string;
-		insertText: string;
-		detail?: string;
-		documentation?: string;
-		sortText?: string;
-		filterText?: string;
-		kind?: M.languages.CompletionItemKind;
-		insertTextRules?: M.languages.CompletionItemInsertTextRule;
-	}
-
-	export type IMonacoSnippetMap = Record<string, IMonacoSnippet[]>;
-	export type IMonacoSnippetRegister = (language: string, snippets: IMonacoSnippet[]) => void;
-	export type IMonacoSnippetLoader =
-		| ((register: IMonacoSnippetRegister) => void | M.IDisposable | (() => void))
-		| undefined;
 
 	interface IMonaco {
 		setting?: IMonacoSetting;
