@@ -69,7 +69,9 @@
 						const nextModel = M.editor.createModel(code, lang, modelUri);
 						ownedModels.set(key, nextModel);
 						return nextModel;
-					} catch (e) {}
+					} catch (e) {
+						console.warn('[Monaco] Failed to create model:', e);
+					}
 				});
 			});
 		}
@@ -124,7 +126,7 @@
 				}
 				_powermode = nextPower;
 			})
-			.catch(() => {});
+			.catch((e) => console.warn('[Monaco] Failed to load power mode:', e));
 
 		return () => {
 			cancelled = true;
@@ -150,7 +152,9 @@
 					return;
 				}
 				_lsp = dispose;
-			} catch {}
+			} catch (e) {
+				console.warn('[Monaco] LSP connection failed:', e);
+			}
 		})();
 		return () => {
 			cancelled = true;

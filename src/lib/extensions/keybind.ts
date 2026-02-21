@@ -69,7 +69,7 @@ const setKeybindings = {
 				const vim = mod.default || mod;
 				dispose = vim?.initVimMode?.(editor, vimMessage)?.dispose;
 			})
-			.catch(() => {});
+			.catch((e) => console.warn('[Monaco] Failed to load vim mode:', e));
 
 		return {
 			dispose() {
@@ -95,7 +95,7 @@ const setKeybindings = {
 				next.onDidChangeKey?.((str: string) => (message.textContent = str));
 				next.start?.();
 			})
-			.catch(() => {});
+			.catch((e) => console.warn('[Monaco] Failed to load emacs mode:', e));
 
 		return {
 			dispose() {
