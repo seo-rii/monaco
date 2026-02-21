@@ -41,21 +41,39 @@ export const createErrorReporter = (
 	};
 };
 
-export const getOrCreateTextModel = (
+export const getModelByUri = (uri: string | M.Uri): M.editor.IModel | null => {
+	const modelUri = typeof uri === 'string' ? M.Uri.parse(uri) : uri;
+	return M.editor.getModel(modelUri);
+};
+
+export const createModel = (source: IMonacoModelSource): M.editor.IModel => {
+	const [code, language, uri] = source;
+	const modelUri = M.Uri.parse(uri);
+	return M.editor.createModel(code, language, modelUri);
+};
+
+export const setModelLanguage = (model: M.editor.IModel, language: string): M.editor.IModel => {
+	M.editor.setModelLanguage(model, language);
+	return model;
+};
+
+export const upsertModel = (
 	source: IMonacoModelSource
 ): { model: M.editor.IModel; created: boolean } => {
 	const [code, language, uri] = source;
-	const modelUri = M.Uri.parse(uri);
-	const existingModel = M.editor.getModel(modelUri);
+	const existingModel = getModelByUri(uri);
 	if (existingModel) {
-		M.editor.setModelLanguage(existingModel, language);
+		setModelLanguage(existingModel, language);
 		existingModel.setValue(code);
 		return { model: existingModel, created: false };
 	}
-	return {
-		model: M.editor.createModel(code, language, modelUri),
-		created: true
-	};
+	return { model: createModel(source), created: true };
+};
+
+export const getOrCreateTextModel = (
+	source: IMonacoModelSource
+): { model: M.editor.IModel; created: boolean } => {
+	return upsertModel(source);
 };
 
 export const toDiffSourcePair = (value: IMonacoDiffProviderResult): IMonacoDiffSourcePair => {

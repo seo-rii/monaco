@@ -2,6 +2,7 @@ import Monaco from './Monaco.svelte';
 import MonacoDiff from './MonacoDiff.svelte';
 
 export { MonacoDiff };
+export { createModel, getModelByUri, setModelLanguage, upsertModel } from './MonacoBase.js';
 
 export type { IMonacoInputEvent, IMonacoSetting } from './Monaco.svelte';
 export type {
