@@ -20,5 +20,6 @@ export type {
 	IMonacoSnippetMap,
 	IMonacoSnippetRegister
 } from './MonacoTypes.js';
+export type { editor } from 'monaco-editor';
 
 export default Monaco;
