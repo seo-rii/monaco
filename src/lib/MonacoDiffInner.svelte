@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { Keybind, setTheme } from '$lib/extensions';
+	import {
+		createErrorReporter,
+		createSnippetRegistry,
+		getOrCreateTextModel,
+		setModelMarkers
+	} from '$lib/MonacoBase.js';
 	import * as M from 'monaco-editor';
 	import lsp from '$lib/extensions/lsp.js';
 	import { untrack } from 'svelte';
-	import type {
-		IMonacoSnippet,
-		IMonacoSnippetLoader,
-		IMonacoSnippetMap
-	} from '$lib/Monaco.svelte';
+	import type { IMonacoSnippetLoader, IMonacoSnippetMap } from '$lib/Monaco.svelte';
 	import type {
 		IMonacoDiffCursorEvent,
 		IMonacoDiffEditorSide,
@@ -18,9 +20,6 @@
 		IMonacoDiffSourcePair,
 		IMonacoModelSource
 	} from '$lib/MonacoDiff.svelte';
-
-	const DEFAULT_MARKER_OWNER = 'seorii-monaco';
-	const SIDES: IMonacoDiffEditorSide[] = ['original', 'modified'];
 
 	interface IMonacoDiffInner {
 		ref: HTMLElement | null;
@@ -78,29 +77,7 @@
 	let loaded = $state(false);
 	const ownedModels = new Map<string, M.editor.IModel>();
 	const ownedModelKeys = new Set<string>();
-
-	const normalizeError = (error: unknown): Error => {
-		if (error instanceof Error) return error;
-		if (typeof error === 'string') return new Error(error);
-		try {
-			return new Error(JSON.stringify(error));
-		} catch {
-			return new Error(String(error));
-		}
-	};
-
-	const reportError = (error: unknown, context: string) => {
-		const normalizedError = normalizeError(error);
-		if (onerror) {
-			try {
-				onerror(normalizedError, context);
-				return;
-			} catch (handlerError) {
-				console.warn('[MonacoDiff] onerror callback failed:', normalizeError(handlerError));
-			}
-		}
-		console.warn(`[MonacoDiff] ${context}:`, normalizedError);
-	};
+	const reportError = createErrorReporter('MonacoDiff', () => onerror);
 
 	const sideEditorList = (): Array<[IMonacoDiffEditorSide, M.editor.IStandaloneCodeEditor]> => {
 		if (!ins) return [];
@@ -148,35 +125,6 @@
 		}
 	};
 
-	const toSnippetProvider = (
-		snippetList: IMonacoSnippet[]
-	): M.languages.CompletionItemProvider => ({
-		provideCompletionItems(currentModel, position) {
-			const word = currentModel.getWordUntilPosition(position);
-			const range = {
-				startLineNumber: position.lineNumber,
-				endLineNumber: position.lineNumber,
-				startColumn: word.startColumn,
-				endColumn: word.endColumn
-			};
-			return {
-				suggestions: snippetList.map((snippet) => ({
-					label: snippet.label,
-					kind: snippet.kind ?? M.languages.CompletionItemKind.Snippet,
-					insertText: snippet.insertText,
-					insertTextRules:
-						snippet.insertTextRules ??
-						M.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-					detail: snippet.detail,
-					documentation: snippet.documentation,
-					sortText: snippet.sortText,
-					filterText: snippet.filterText,
-					range
-				}))
-			};
-		}
-	});
-
 	const toSourcePair = (value: IMonacoDiffProviderResult): IMonacoDiffSourcePair => {
 		if (Array.isArray(value)) {
 			const [original, modified] = value;
@@ -190,30 +138,12 @@
 		ownedModelKey: string,
 		activeKey: string
 	) => {
-		const [code, language, uri] = source;
-		const modelUri = M.Uri.parse(uri);
-		const existingModel = M.editor.getModel(modelUri);
-		if (existingModel) {
-			M.editor.setModelLanguage(existingModel, language);
-			existingModel.setValue(code);
-			return existingModel;
+		const resolvedModel = getOrCreateTextModel(source);
+		if (resolvedModel.created) {
+			ownedModels.set(ownedModelKey, resolvedModel.model);
+			ownedModelKeys.add(activeKey);
 		}
-		const nextModel = M.editor.createModel(code, language, modelUri);
-		ownedModels.set(ownedModelKey, nextModel);
-		ownedModelKeys.add(activeKey);
-		return nextModel;
-	};
-
-	const applyMarkers = (
-		targetModel: M.editor.IModel | undefined,
-		markers: M.editor.IMarkerData[] | undefined
-	) => {
-		if (!targetModel) return;
-		const owner = markerOwner ?? DEFAULT_MARKER_OWNER;
-		M.editor.setModelMarkers(targetModel, owner, markers ?? []);
-		return () => {
-			if (!targetModel.isDisposed()) M.editor.setModelMarkers(targetModel, owner, []);
-		};
+		return resolvedModel.model;
 	};
 
 	$effect(() => {
@@ -385,59 +315,21 @@
 
 	$effect(() => {
 		const currentModel = getSideModel('original');
-		return applyMarkers(currentModel, originalMarkers);
+		return setModelMarkers(currentModel, originalMarkers, markerOwner);
 	});
 
 	$effect(() => {
 		const currentModel = getSideModel('modified');
-		return applyMarkers(currentModel, modifiedMarkers);
+		return setModelMarkers(currentModel, modifiedMarkers, markerOwner);
 	});
 
-	$effect(() => {
-		if (!snippets && !registerSnippets) return;
-		const snippetDisposables = new Map<string, M.IDisposable>();
-		let disposed = false;
-		const register = (language: string, snippetList: IMonacoSnippet[]) => {
-			if (disposed) return;
-			snippetDisposables.get(language)?.dispose();
-			snippetDisposables.delete(language);
-			if (!snippetList.length) return;
-			const disposable = M.languages.registerCompletionItemProvider(
-				language,
-				toSnippetProvider(snippetList)
-			);
-			snippetDisposables.set(language, disposable);
-		};
-
-		if (snippets) {
-			for (const [language, snippetList] of Object.entries(snippets)) {
-				register(language, snippetList);
-			}
-		}
-
-		let cleanup: (() => void) | undefined;
-		if (registerSnippets) {
-			try {
-				const result = registerSnippets(register);
-				if (typeof result === 'function') {
-					cleanup = result;
-				} else if (result && typeof result.dispose === 'function') {
-					cleanup = () => result.dispose();
-				}
-			} catch (e) {
-				reportError(e, 'registerSnippets callback failed');
-			}
-		}
-
-		return () => {
-			disposed = true;
-			cleanup?.();
-			for (const disposable of snippetDisposables.values()) {
-				disposable.dispose();
-			}
-			snippetDisposables.clear();
-		};
-	});
+	$effect(() =>
+		createSnippetRegistry({
+			snippets,
+			registerSnippets,
+			reportError
+		})
+	);
 
 	let _keybind: M.IDisposable | null | undefined = null;
 	let _powermode: M.IDisposable | null | undefined = null;

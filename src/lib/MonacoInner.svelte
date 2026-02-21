@@ -1,17 +1,20 @@
 <script lang="ts">
 	import { Keybind, setTheme } from '$lib/extensions';
+	import {
+		createErrorReporter,
+		createSnippetRegistry,
+		getOrCreateTextModel,
+		setModelMarkers
+	} from '$lib/MonacoBase.js';
 	import * as M from 'monaco-editor';
 	import lsp from '$lib/extensions/lsp.js';
 	import { untrack } from 'svelte';
 	import type {
 		IMonacoInputEvent,
 		IMonacoSetting,
-		IMonacoSnippet,
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
 	} from '$lib/Monaco.svelte';
-
-	const DEFAULT_MARKER_OWNER = 'seorii-monaco';
 
 	interface IMonacoInner {
 		ref: HTMLElement | null;
@@ -64,29 +67,7 @@
 	let ins: M.editor.IStandaloneCodeEditor | undefined;
 	let loaded = $state(false);
 	const ownedModels = new Map<string, M.editor.IModel>();
-
-	const normalizeError = (error: unknown): Error => {
-		if (error instanceof Error) return error;
-		if (typeof error === 'string') return new Error(error);
-		try {
-			return new Error(JSON.stringify(error));
-		} catch {
-			return new Error(String(error));
-		}
-	};
-
-	const reportError = (error: unknown, context: string) => {
-		const normalizedError = normalizeError(error);
-		if (onerror) {
-			try {
-				onerror(normalizedError, context);
-				return;
-			} catch (handlerError) {
-				console.warn('[Monaco] onerror callback failed:', normalizeError(handlerError));
-			}
-		}
-		console.warn(`[Monaco] ${context}:`, normalizedError);
-	};
+	const reportError = createErrorReporter('Monaco', () => onerror);
 
 	const getActiveModel = (): M.editor.IModel | undefined => {
 		const currentModel = ins?.getModel() ?? model;
@@ -101,35 +82,6 @@
 			reportError(e, 'oninput callback failed');
 		}
 	};
-
-	const toSnippetProvider = (
-		snippetList: IMonacoSnippet[]
-	): M.languages.CompletionItemProvider => ({
-		provideCompletionItems(currentModel, position) {
-			const word = currentModel.getWordUntilPosition(position);
-			const range = {
-				startLineNumber: position.lineNumber,
-				endLineNumber: position.lineNumber,
-				startColumn: word.startColumn,
-				endColumn: word.endColumn
-			};
-			return {
-				suggestions: snippetList.map((snippet) => ({
-					label: snippet.label,
-					kind: snippet.kind ?? M.languages.CompletionItemKind.Snippet,
-					insertText: snippet.insertText,
-					insertTextRules:
-						snippet.insertTextRules ??
-						M.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-					detail: snippet.detail,
-					documentation: snippet.documentation,
-					sortText: snippet.sortText,
-					filterText: snippet.filterText,
-					range
-				}))
-			};
-		}
-	});
 
 	$effect(() => {
 		if (!loaded || !ins) return;
@@ -222,59 +174,16 @@
 
 	$effect(() => {
 		const currentModel = model;
-		if (!currentModel) return;
-		const owner = markerOwner ?? DEFAULT_MARKER_OWNER;
-		M.editor.setModelMarkers(currentModel, owner, markers ?? []);
-		return () => {
-			if (!currentModel.isDisposed()) M.editor.setModelMarkers(currentModel, owner, []);
-		};
+		return setModelMarkers(currentModel, markers, markerOwner);
 	});
 
-	$effect(() => {
-		if (!snippets && !registerSnippets) return;
-		const snippetDisposables = new Map<string, M.IDisposable>();
-		let disposed = false;
-		const register = (language: string, snippetList: IMonacoSnippet[]) => {
-			if (disposed) return;
-			snippetDisposables.get(language)?.dispose();
-			snippetDisposables.delete(language);
-			if (!snippetList.length) return;
-			const disposable = M.languages.registerCompletionItemProvider(
-				language,
-				toSnippetProvider(snippetList)
-			);
-			snippetDisposables.set(language, disposable);
-		};
-
-		if (snippets) {
-			for (const [language, snippetList] of Object.entries(snippets)) {
-				register(language, snippetList);
-			}
-		}
-
-		let cleanup: (() => void) | undefined;
-		if (registerSnippets) {
-			try {
-				const result = registerSnippets(register);
-				if (typeof result === 'function') {
-					cleanup = result;
-				} else if (result && typeof result.dispose === 'function') {
-					cleanup = () => result.dispose();
-				}
-			} catch (e) {
-				reportError(e, 'registerSnippets callback failed');
-			}
-		}
-
-		return () => {
-			disposed = true;
-			cleanup?.();
-			for (const disposable of snippetDisposables.values()) {
-				disposable.dispose();
-			}
-			snippetDisposables.clear();
-		};
-	});
+	$effect(() =>
+		createSnippetRegistry({
+			snippets,
+			registerSnippets,
+			reportError
+		})
+	);
 
 	$effect(() => {
 		if (!loaded || !provider || !ins) return;
@@ -283,17 +192,9 @@
 			untrack(() => {
 				models[key] = provider(key).then((r) => {
 					try {
-						const [code, lang, uri] = r;
-						const modelUri = M.Uri.parse(uri);
-						const existingModel = M.editor.getModel(modelUri);
-						if (existingModel) {
-							M.editor.setModelLanguage(existingModel, lang);
-							existingModel.setValue(code);
-							return existingModel;
-						}
-						const nextModel = M.editor.createModel(code, lang, modelUri);
-						ownedModels.set(key, nextModel);
-						return nextModel;
+						const resolvedModel = getOrCreateTextModel(r);
+						if (resolvedModel.created) ownedModels.set(key, resolvedModel.model);
+						return resolvedModel.model;
 					} catch (e) {
 						reportError(e, 'Failed to create model');
 					}
