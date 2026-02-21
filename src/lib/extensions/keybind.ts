@@ -2,37 +2,8 @@ import type Monaco from 'monaco-editor';
 
 let emacsExtensionLoader: Promise<any> | undefined;
 
-const loadScriptOnce = (url: string) =>
-	new Promise<void>((resolve, reject) => {
-		if (typeof document === 'undefined') {
-			resolve();
-			return;
-		}
-		const existing = document.querySelector<HTMLScriptElement>(
-			`script[data-seorii-monaco-emacs="true"][src="${url}"]`
-		);
-		if (existing) {
-			if (existing.dataset.loaded === 'true') {
-				resolve();
-				return;
-			}
-			const onLoad = () => resolve();
-			const onError = () => reject(new Error('Failed to load monaco-emacs bundle'));
-			existing.addEventListener('load', onLoad, { once: true });
-			existing.addEventListener('error', onError, { once: true });
-			return;
-		}
-		const script = document.createElement('script');
-		script.src = url;
-		script.async = true;
-		script.dataset.seoriiMonacoEmacs = 'true';
-		script.onload = () => {
-			script.dataset.loaded = 'true';
-			resolve();
-		};
-		script.onerror = () => reject(new Error('Failed to load monaco-emacs bundle'));
-		document.head.append(script);
-	});
+const resolveEmacsExtension = (mod: any) =>
+	mod?.EmacsExtension || mod?.default?.EmacsExtension || mod?.default;
 
 const loadEmacsExtension = async () => {
 	const g = globalThis as any;
@@ -40,15 +11,12 @@ const loadEmacsExtension = async () => {
 
 	if (!emacsExtensionLoader) {
 		emacsExtensionLoader = (async () => {
-			const [monaco, { default: emacsUrl }] = await Promise.all([
+			const [monaco, emacsModule] = await Promise.all([
 				import('monaco-editor'),
-				import('monaco-emacs/dist/monaco-emacs.js?url')
+				import('monaco-emacs')
 			]);
 			if (!g.monaco) g.monaco = monaco;
-			if (!g.MonacoEmacs) {
-				await loadScriptOnce(emacsUrl);
-			}
-			return g.MonacoEmacs?.EmacsExtension || g.MonacoEmacs?.default;
+			return resolveEmacsExtension(emacsModule) || g.MonacoEmacs?.default;
 		})().finally(() => {
 			emacsExtensionLoader = undefined;
 		});
