@@ -33,6 +33,7 @@ export default class Power {
 	appliedModels: Set<M.editor.IModel> = new Set();
 	events: Set<M.IDisposable> = new Set();
 	appliedStyles = new Set<string>();
+	appliedStyleElements = new Set<HTMLStyleElement>();
 	config: IPowerConfig = { size: 30, offset: 0.1, backgroundMode: 'mask' };
 	lastDecorations = new Set<string>();
 	_block = false;
@@ -83,6 +84,11 @@ export default class Power {
 		}
 		this.events.clear();
 		this.appliedModels.clear();
+		for (const style of this.appliedStyleElements) {
+			style.remove();
+		}
+		this.appliedStyleElements.clear();
+		this.appliedStyles.clear();
 		this.lastDecorations.clear();
 	}
 
@@ -155,7 +161,7 @@ export default class Power {
 		const customCssString = this.objectToCssString(this.config['customCss'] || {});
 		if (!this.appliedStyles.has(`power-spk-${explosion}-${filter}`)) {
 			this.appliedStyles.add(`power-spk-${explosion}-${filter}`);
-			addStyle(`
+			const styleElement = addStyle(`
               .power-spk-${explosion}-${filter} {
                 position: relative;
                 z-index: 1000000;
@@ -167,6 +173,7 @@ export default class Power {
                 ${customCssString}
               }
             `);
+			this.appliedStyleElements.add(styleElement);
 		}
 		return {
 			range: editorPosition,
@@ -177,8 +184,9 @@ export default class Power {
 	}
 }
 
-function addStyle(styleString: string) {
+function addStyle(styleString: string): HTMLStyleElement {
 	const style = document.createElement('style');
 	style.textContent = styleString;
 	document.head.append(style);
+	return style;
 }
