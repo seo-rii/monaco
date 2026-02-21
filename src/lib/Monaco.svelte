@@ -22,6 +22,7 @@
 		models?: Record<string, Promise<M.editor.IModel | undefined>>;
 		onchange?: (m: M.editor.IModel) => void;
 		onload?: (m: M.editor.IStandaloneCodeEditor) => void;
+		onerror?: (error: Error, context: string) => void;
 	}
 
 	let {
@@ -37,12 +38,21 @@
 		children,
 		onchange,
 		onload,
+		onerror
 	}: IMonaco = $props();
 
 	let Monaco: typeof import('./MonacoInner.svelte').default | null = $state(null);
 
 	$effect(() => {
-		import('./MonacoInner.svelte').then((i) => (Monaco = i.default));
+		import('./MonacoInner.svelte')
+			.then((i) => (Monaco = i.default))
+			.catch((e: unknown) => {
+				const error = e instanceof Error ? e : new Error(String(e));
+				onerror?.(error, 'Failed to load MonacoInner component');
+				if (!onerror) {
+					console.warn('[Monaco] Failed to load MonacoInner component:', error);
+				}
+			});
 	});
 </script>
 
@@ -59,6 +69,7 @@
 		{lspurl}
 		{onchange}
 		{onload}
+		{onerror}
 	/>
 {:else}
 	{@render children?.()}
