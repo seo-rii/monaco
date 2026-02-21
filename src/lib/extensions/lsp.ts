@@ -12,7 +12,7 @@ import {
 } from '@codingame/monaco-jsonrpc';
 import * as M from 'monaco-editor';
 
-const languages = {
+const languages: Record<string, { id: string; extensions: string[]; aliases: string[]; mimetypes: string[] }> = {
 	python: {
 		id: 'python',
 		extensions: ['.py', '.pyi'],
@@ -41,9 +41,10 @@ const languages = {
 
 function createLanguageClient(
 	transports: MessageTransports,
-	language: keyof typeof languages
+	language: string
 ): MonacoLanguageClient {
-	if (languages[language]) M.languages.register(languages[language]);
+	const lang = languages[language];
+	if (lang) M.languages.register(lang);
 	return new MonacoLanguageClient({
 		name: 'Sample Language Client',
 		clientOptions: {
@@ -69,8 +70,8 @@ function createLanguageClient(
 let svcInstalled = false;
 
 export default async function (
-	language: keyof typeof languages,
-	fr: string | { reader: any; writer: any }
+	language: string,
+	fr: string | MessageTransports
 ) {
 	if (!svcInstalled) {
 		MonacoServices.install(M);

@@ -58,7 +58,7 @@ const loadEmacsExtension = async () => {
 };
 
 const setKeybindings = {
-	vim: (editor: Monaco.editor.IStandaloneCodeEditor, vimMessage: HTMLElement) => {
+	vim: (editor: Monaco.editor.IStandaloneCodeEditor, vimMessage: HTMLElement): { dispose(): void } | undefined => {
 		if (!editor) return;
 		let disposed = false;
 		let dispose: (() => void) | undefined;
@@ -78,7 +78,7 @@ const setKeybindings = {
 			}
 		};
 	},
-	emacs: (editor: Monaco.editor.IStandaloneCodeEditor, message: HTMLElement) => {
+	emacs: (editor: Monaco.editor.IStandaloneCodeEditor, message: HTMLElement): { dispose(): void } | undefined => {
 		if (!editor) return;
 		let disposed = false;
 		let emacsInstance: { dispose?: () => void } | undefined;

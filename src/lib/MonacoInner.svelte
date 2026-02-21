@@ -3,22 +3,20 @@
 	import * as M from 'monaco-editor';
 	import lsp from '$lib/extensions/lsp.js';
 	import { untrack } from 'svelte';
+	import type { IMonacoSetting } from '$lib/Monaco.svelte';
 
 	interface IMonacoInner {
 		ref: HTMLElement | null;
 		models: Record<string, Promise<M.editor.IModel | undefined>>;
 		active: string;
-		provider?: (
-			id: string,
-			uri?: (path: string | { reader: any; writer: any }) => string
-		) => Promise<[string, string, string]>;
+		provider?: (id: string) => Promise<[string, string, string]>;
 		model: M.editor.IModel | undefined;
-		setting: M.editor.IEditorConstructionOptions & any;
+		setting: IMonacoSetting;
 		theme: string;
 		message: HTMLElement | null;
 		lspurl?: (language: string) => string;
-		onchange?: (m: M.editor.IModel) => any;
-		onload?: (m: M.editor.IStandaloneCodeEditor) => any;
+		onchange?: (m: M.editor.IModel) => void;
+		onload?: (m: M.editor.IStandaloneCodeEditor) => void;
 	}
 
 	let {
@@ -81,7 +79,7 @@
 		modelPromise.then((nextModel) => {
 			if (cancelled || !nextModel) return;
 			if (!ins || active !== key) return;
-			model = nextModel as any;
+			model = nextModel;
 		});
 		return () => {
 			cancelled = true;
@@ -98,12 +96,13 @@
 		};
 	});
 
-	let _keybind: any, _powermode: any;
+	let _keybind: M.IDisposable | null | undefined = null;
+	let _powermode: M.IDisposable | null | undefined = null;
 
 	$effect(() => {
 		_keybind =
 			loaded && ins && message && setting.key
-				? Keybind[setting.key as keyof typeof Keybind]?.(ins, message)
+				? Keybind[setting.key]?.(ins, message)
 				: null;
 		return () => _keybind?.dispose?.();
 	});
@@ -146,7 +145,7 @@
 			try {
 				const url = lspurl && (await lspurl(language));
 				if (!url || cancelled) return;
-				const dispose = await lsp(language as any, url);
+				const dispose = await lsp(language, url);
 				if (cancelled) {
 					dispose?.();
 					return;

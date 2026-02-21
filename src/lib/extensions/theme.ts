@@ -1,9 +1,9 @@
 import * as M from 'monaco-editor';
 
-const store: any = {};
+const store: Record<string, M.editor.IStandaloneThemeData> = {};
 let themeNo = 0;
 
-export default async function setTheme(src: any) {
+export default async function setTheme(src: string | M.editor.IStandaloneThemeData) {
 	const name = `--theme-${++themeNo}`;
 	if (typeof src !== 'string') {
 		store[name] = src;

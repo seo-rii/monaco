@@ -20,13 +20,21 @@ const filters = [
 	'brightness(0.9) invert(.7) sepia(.5) hue-rotate(170deg) saturate(200%)'
 ];
 
+interface IPowerConfig {
+	size: number;
+	offset: number;
+	backgroundMode: string;
+	'explosions.gifMode'?: string;
+	customCss?: Record<string, string | number>;
+}
+
 export default class Power {
 	editor: M.editor.IStandaloneCodeEditor;
 	appliedModels: Set<M.editor.IModel> = new Set();
 	events: Set<M.IDisposable> = new Set();
-	appliedStyles = new Set();
-	config: any = { size: 30, offset: 0.1, backgroundMode: 'mask' };
-	lastDecorations = new Set();
+	appliedStyles = new Set<string>();
+	config: IPowerConfig = { size: 30, offset: 0.1, backgroundMode: 'mask' };
+	lastDecorations = new Set<string>();
 	_block = false;
 
 	constructor(editor: M.editor.IStandaloneCodeEditor) {
@@ -36,13 +44,13 @@ export default class Power {
 	}
 
 	registerModel = () => {
-		const model = <M.editor.ITextModel>this.editor?.getModel?.();
+		const model = this.editor?.getModel?.();
 		if (!model) return;
 		if (this.appliedModels.has(model)) return;
 		this.appliedModels.add(model);
-		const event = model.onDidChangeContent(async (e: any) => {
+		const event = model.onDidChangeContent((e) => {
 			if (this._block) return;
-			const range: M.Range = new (await M).Range(
+			const range = new M.Range(
 				e.changes[0].range.endLineNumber,
 				e.changes[0].range.endColumn,
 				e.changes[0].range.endLineNumber,
@@ -108,8 +116,8 @@ export default class Power {
 		};
 	}
 
-	objectToCssString(settings: any) {
-		let value = '';
+	objectToCssString(settings: Record<string, string | number>) {
+		let value: string | number = '';
 		const cssString = Object.keys(settings)
 			.map((setting) => {
 				value = settings[setting];
