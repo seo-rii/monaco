@@ -3,7 +3,15 @@
 	import * as M from 'monaco-editor';
 	import lsp from '$lib/extensions/lsp.js';
 	import { untrack } from 'svelte';
-	import type { IMonacoSetting } from '$lib/Monaco.svelte';
+	import type {
+		IMonacoInputEvent,
+		IMonacoSetting,
+		IMonacoSnippet,
+		IMonacoSnippetLoader,
+		IMonacoSnippetMap
+	} from '$lib/Monaco.svelte';
+
+	const DEFAULT_MARKER_OWNER = 'seorii-monaco';
 
 	interface IMonacoInner {
 		ref: HTMLElement | null;
@@ -12,10 +20,19 @@
 		provider?: (id: string) => Promise<[string, string, string]>;
 		model: M.editor.IModel | undefined;
 		setting: IMonacoSetting;
+		readonly?: boolean;
 		theme: string;
 		message: HTMLElement | null;
 		lspurl?: (language: string) => string;
+		markers?: M.editor.IMarkerData[];
+		markerOwner?: string;
+		snippets?: IMonacoSnippetMap;
+		registerSnippets?: IMonacoSnippetLoader;
 		onchange?: (m: M.editor.IModel) => void;
+		oninput?: (event: IMonacoInputEvent) => void;
+		oncursor?: (position: M.Position) => void;
+		onfocus?: () => void;
+		onblur?: () => void;
 		onload?: (m: M.editor.IStandaloneCodeEditor) => void;
 		onerror?: (error: Error, context: string) => void;
 	}
@@ -28,9 +45,18 @@
 		message = $bindable(),
 		provider,
 		setting,
+		readonly: readonlyProp,
 		theme,
 		lspurl,
+		markers,
+		markerOwner,
+		snippets,
+		registerSnippets,
 		onchange,
+		oninput,
+		oncursor,
+		onfocus,
+		onblur,
 		onload,
 		onerror
 	}: IMonacoInner = $props();
@@ -62,8 +88,56 @@
 		console.warn(`[Monaco] ${context}:`, normalizedError);
 	};
 
+	const getActiveModel = (): M.editor.IModel | undefined => {
+		const currentModel = ins?.getModel() ?? model;
+		return currentModel ?? undefined;
+	};
+
+	const emitInput = (event: IMonacoInputEvent) => {
+		if (!oninput) return;
+		try {
+			oninput(event);
+		} catch (e) {
+			reportError(e, 'oninput callback failed');
+		}
+	};
+
+	const toSnippetProvider = (
+		snippetList: IMonacoSnippet[]
+	): M.languages.CompletionItemProvider => ({
+		provideCompletionItems(currentModel, position) {
+			const word = currentModel.getWordUntilPosition(position);
+			const range = {
+				startLineNumber: position.lineNumber,
+				endLineNumber: position.lineNumber,
+				startColumn: word.startColumn,
+				endColumn: word.endColumn
+			};
+			return {
+				suggestions: snippetList.map((snippet) => ({
+					label: snippet.label,
+					kind: snippet.kind ?? M.languages.CompletionItemKind.Snippet,
+					insertText: snippet.insertText,
+					insertTextRules:
+						snippet.insertTextRules ??
+						M.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: snippet.detail,
+					documentation: snippet.documentation,
+					sortText: snippet.sortText,
+					filterText: snippet.filterText,
+					range
+				}))
+			};
+		}
+	});
+
 	$effect(() => {
-		if (loaded) ins?.updateOptions(setting);
+		if (!loaded || !ins) return;
+		const readOnly = readonlyProp ?? setting.readOnly;
+		ins.updateOptions({
+			...setting,
+			readOnly
+		});
 	});
 
 	$effect(() => {
@@ -72,6 +146,134 @@
 
 	$effect(() => {
 		if (loaded && ins && model) ins.setModel(model);
+	});
+
+	$effect(() => {
+		if (!loaded || !ins || (!onchange && !oninput)) return;
+		const disposable = ins.onDidChangeModelContent((event) => {
+			const currentModel = getActiveModel();
+			if (!currentModel) return;
+			if (onchange) {
+				try {
+					onchange(currentModel);
+				} catch (e) {
+					reportError(e, 'onchange callback failed');
+				}
+			}
+			emitInput({
+				model: currentModel,
+				value: currentModel.getValue(),
+				reason: 'change',
+				event
+			});
+		});
+		return () => disposable.dispose();
+	});
+
+	$effect(() => {
+		if (!loaded || !ins || !oninput) return;
+		const disposable = ins.onDidAttemptReadOnlyEdit(() => {
+			const currentModel = getActiveModel();
+			if (!currentModel) return;
+			emitInput({
+				model: currentModel,
+				value: currentModel.getValue(),
+				reason: 'readonly-attempt'
+			});
+		});
+		return () => disposable.dispose();
+	});
+
+	$effect(() => {
+		if (!loaded || !ins || !oncursor) return;
+		const disposable = ins.onDidChangeCursorPosition((event) => {
+			try {
+				oncursor(event.position);
+			} catch (e) {
+				reportError(e, 'oncursor callback failed');
+			}
+		});
+		return () => disposable.dispose();
+	});
+
+	$effect(() => {
+		if (!loaded || !ins || !onfocus) return;
+		const disposable = ins.onDidFocusEditorText(() => {
+			try {
+				onfocus();
+			} catch (e) {
+				reportError(e, 'onfocus callback failed');
+			}
+		});
+		return () => disposable.dispose();
+	});
+
+	$effect(() => {
+		if (!loaded || !ins || !onblur) return;
+		const disposable = ins.onDidBlurEditorText(() => {
+			try {
+				onblur();
+			} catch (e) {
+				reportError(e, 'onblur callback failed');
+			}
+		});
+		return () => disposable.dispose();
+	});
+
+	$effect(() => {
+		const currentModel = model;
+		if (!currentModel) return;
+		const owner = markerOwner ?? DEFAULT_MARKER_OWNER;
+		M.editor.setModelMarkers(currentModel, owner, markers ?? []);
+		return () => {
+			if (!currentModel.isDisposed()) M.editor.setModelMarkers(currentModel, owner, []);
+		};
+	});
+
+	$effect(() => {
+		if (!snippets && !registerSnippets) return;
+		const snippetDisposables = new Map<string, M.IDisposable>();
+		let disposed = false;
+		const register = (language: string, snippetList: IMonacoSnippet[]) => {
+			if (disposed) return;
+			snippetDisposables.get(language)?.dispose();
+			snippetDisposables.delete(language);
+			if (!snippetList.length) return;
+			const disposable = M.languages.registerCompletionItemProvider(
+				language,
+				toSnippetProvider(snippetList)
+			);
+			snippetDisposables.set(language, disposable);
+		};
+
+		if (snippets) {
+			for (const [language, snippetList] of Object.entries(snippets)) {
+				register(language, snippetList);
+			}
+		}
+
+		let cleanup: (() => void) | undefined;
+		if (registerSnippets) {
+			try {
+				const result = registerSnippets(register);
+				if (typeof result === 'function') {
+					cleanup = result;
+				} else if (result && typeof result.dispose === 'function') {
+					cleanup = () => result.dispose();
+				}
+			} catch (e) {
+				reportError(e, 'registerSnippets callback failed');
+			}
+		}
+
+		return () => {
+			disposed = true;
+			cleanup?.();
+			for (const disposable of snippetDisposables.values()) {
+				disposable.dispose();
+			}
+			snippetDisposables.clear();
+		};
 	});
 
 	$effect(() => {
@@ -126,9 +328,7 @@
 
 	$effect(() => {
 		_keybind =
-			loaded && ins && message && setting.key
-				? Keybind[setting.key]?.(ins, message)
-				: null;
+			loaded && ins && message && setting.key ? Keybind[setting.key]?.(ins, message) : null;
 		return () => _keybind?.dispose?.();
 	});
 
@@ -196,13 +396,6 @@
 			automaticLayout: true,
 			minimap: {
 				enabled: false
-			}
-		});
-		ins.onDidChangeModelContent(() => {
-			try {
-				if (model) onchange?.(model);
-			} catch (e) {
-				reportError(e, 'onchange callback failed');
 			}
 		});
 

@@ -9,8 +9,33 @@
 		power?: boolean;
 	}
 
+	export interface IMonacoInputEvent {
+		model: M.editor.IModel;
+		value: string;
+		reason: 'change' | 'readonly-attempt';
+		event?: M.editor.IModelContentChangedEvent;
+	}
+
+	export interface IMonacoSnippet {
+		label: string;
+		insertText: string;
+		detail?: string;
+		documentation?: string;
+		sortText?: string;
+		filterText?: string;
+		kind?: M.languages.CompletionItemKind;
+		insertTextRules?: M.languages.CompletionItemInsertTextRule;
+	}
+
+	export type IMonacoSnippetMap = Record<string, IMonacoSnippet[]>;
+	export type IMonacoSnippetRegister = (language: string, snippets: IMonacoSnippet[]) => void;
+	export type IMonacoSnippetLoader =
+		| ((register: IMonacoSnippetRegister) => void | M.IDisposable | (() => void))
+		| undefined;
+
 	interface IMonaco {
 		setting?: IMonacoSetting;
+		readonly?: boolean;
 		provider?: (id: string) => Promise<[string, string, string]>;
 		active?: string;
 		theme?: string;
@@ -20,7 +45,15 @@
 		ref?: HTMLElement | null;
 		model?: M.editor.IModel;
 		models?: Record<string, Promise<M.editor.IModel | undefined>>;
+		markers?: M.editor.IMarkerData[];
+		markerOwner?: string;
+		snippets?: IMonacoSnippetMap;
+		registerSnippets?: IMonacoSnippetLoader;
 		onchange?: (m: M.editor.IModel) => void;
+		oninput?: (event: IMonacoInputEvent) => void;
+		oncursor?: (position: M.Position) => void;
+		onfocus?: () => void;
+		onblur?: () => void;
 		onload?: (m: M.editor.IStandaloneCodeEditor) => void;
 		onerror?: (error: Error, context: string) => void;
 	}
@@ -33,10 +66,19 @@
 		message = $bindable(null),
 		provider,
 		setting = {},
+		readonly: readonlyProp,
 		theme = '',
 		lspurl,
 		children,
+		markers,
+		markerOwner,
+		snippets,
+		registerSnippets,
 		onchange,
+		oninput,
+		oncursor,
+		onfocus,
+		onblur,
 		onload,
 		onerror
 	}: IMonaco = $props();
@@ -65,9 +107,18 @@
 		bind:ref
 		{provider}
 		{setting}
+		readonly={readonlyProp}
 		{theme}
 		{lspurl}
+		{markers}
+		{markerOwner}
+		{snippets}
+		{registerSnippets}
 		{onchange}
+		{oninput}
+		{oncursor}
+		{onfocus}
+		{onblur}
 		{onload}
 		{onerror}
 	/>
