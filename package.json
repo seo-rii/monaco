@@ -1,6 +1,6 @@
 {
 	"name": "@seorii/monaco",
-	"version": "0.0.35",
+	"version": "0.0.36",
 	"scripts": {
 		"deploy": "npm run build && npm publish --access=public",
 		"dev": "vite dev",
@@ -17,6 +17,10 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"svelte": "./dist/index.js"
+		},
+		"./workers": {
+			"types": "./dist/workers.d.ts",
+			"default": "./dist/workers.js"
 		}
 	},
 	"files": [
