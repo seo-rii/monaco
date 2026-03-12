@@ -34,3 +34,5 @@ export type {
 export type { editor } from 'monaco-editor';
 
 export default Monaco;
+
+export const loadMonaco = () => import('monaco-editor');
