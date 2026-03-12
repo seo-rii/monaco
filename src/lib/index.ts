@@ -2,7 +2,14 @@ import Monaco from './Monaco.svelte';
 import MonacoDiff from './MonacoDiff.svelte';
 
 export { MonacoDiff };
-export { createModel, getModelByUri, setModelLanguage, upsertModel } from './MonacoBase.js';
+export {
+	createLineHighlightDecoration,
+	createModel,
+	getModelByUri,
+	setModelDecorations,
+	setModelLanguage,
+	upsertModel
+} from './MonacoBase.js';
 
 export type { IMonacoInputEvent, IMonacoSetting } from './Monaco.svelte';
 export type {
@@ -13,8 +20,11 @@ export type {
 	IMonacoDiffSetting
 } from './MonacoDiff.svelte';
 export type {
+	IMonacoDecoration,
+	IMonacoDecorationHover,
 	IMonacoDiffProviderResult,
 	IMonacoDiffSourcePair,
+	IMonacoLineHighlightOptions,
 	IMonacoModelSource,
 	IMonacoSnippet,
 	IMonacoSnippetLoader,

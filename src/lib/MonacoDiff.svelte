@@ -2,6 +2,7 @@
 	import type * as M from 'monaco-editor';
 	import type { Snippet } from 'svelte';
 	import type {
+		IMonacoDecoration,
 		IMonacoDiffProviderResult,
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
@@ -49,6 +50,8 @@
 		models?: Record<string, Promise<M.editor.IDiffEditorModel | undefined>>;
 		originalMarkers?: M.editor.IMarkerData[];
 		modifiedMarkers?: M.editor.IMarkerData[];
+		originalDecorations?: IMonacoDecoration[];
+		modifiedDecorations?: IMonacoDecoration[];
 		markerOwner?: string;
 		snippets?: IMonacoSnippetMap;
 		registerSnippets?: IMonacoSnippetLoader;
@@ -76,6 +79,8 @@
 		children,
 		originalMarkers,
 		modifiedMarkers,
+		originalDecorations,
+		modifiedDecorations,
 		markerOwner,
 		snippets,
 		registerSnippets,
@@ -118,6 +123,8 @@
 		{lspurl}
 		{originalMarkers}
 		{modifiedMarkers}
+		{originalDecorations}
+		{modifiedDecorations}
 		{markerOwner}
 		{snippets}
 		{registerSnippets}

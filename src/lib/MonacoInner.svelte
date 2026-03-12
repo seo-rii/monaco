@@ -4,13 +4,18 @@
 		createOwnedTextModelRegistry,
 		createErrorReporter,
 		createSnippetRegistry,
+		setModelDecorations,
 		setModelMarkers
 	} from '$lib/MonacoBase.js';
 	import * as M from 'monaco-editor';
 	import lsp from '$lib/extensions/lsp.js';
 	import { untrack } from 'svelte';
 	import type { IMonacoInputEvent, IMonacoSetting } from '$lib/Monaco.svelte';
-	import type { IMonacoSnippetLoader, IMonacoSnippetMap } from '$lib/MonacoTypes.js';
+	import type {
+		IMonacoDecoration,
+		IMonacoSnippetLoader,
+		IMonacoSnippetMap
+	} from '$lib/MonacoTypes.js';
 
 	interface IMonacoInner {
 		ref: HTMLElement | null;
@@ -24,6 +29,7 @@
 		message: HTMLElement | null;
 		lspurl?: (language: string) => string;
 		markers?: M.editor.IMarkerData[];
+		decorations?: IMonacoDecoration[];
 		markerOwner?: string;
 		snippets?: IMonacoSnippetMap;
 		registerSnippets?: IMonacoSnippetLoader;
@@ -48,6 +54,7 @@
 		theme,
 		lspurl,
 		markers,
+		decorations,
 		markerOwner,
 		snippets,
 		registerSnippets,
@@ -171,6 +178,11 @@
 	$effect(() => {
 		const currentModel = model;
 		return setModelMarkers(currentModel, markers, markerOwner);
+	});
+
+	$effect(() => {
+		const currentModel = getActiveModel();
+		return setModelDecorations(currentModel, decorations);
 	});
 
 	$effect(() =>

@@ -1,7 +1,11 @@
 <script lang="ts">
 	import type * as M from 'monaco-editor';
 	import type { Snippet } from 'svelte';
-	import type { IMonacoSnippetLoader, IMonacoSnippetMap } from '$lib/MonacoTypes.js';
+	import type {
+		IMonacoDecoration,
+		IMonacoSnippetLoader,
+		IMonacoSnippetMap
+	} from '$lib/MonacoTypes.js';
 
 	export interface IMonacoSetting extends M.editor.IEditorConstructionOptions {
 		/** Enable vim or emacs keybinding mode */
@@ -30,6 +34,7 @@
 		model?: M.editor.IModel;
 		models?: Record<string, Promise<M.editor.IModel | undefined>>;
 		markers?: M.editor.IMarkerData[];
+		decorations?: IMonacoDecoration[];
 		markerOwner?: string;
 		snippets?: IMonacoSnippetMap;
 		registerSnippets?: IMonacoSnippetLoader;
@@ -55,6 +60,7 @@
 		lspurl,
 		children,
 		markers,
+		decorations,
 		markerOwner,
 		snippets,
 		registerSnippets,
@@ -95,6 +101,7 @@
 		{theme}
 		{lspurl}
 		{markers}
+		{decorations}
 		{markerOwner}
 		{snippets}
 		{registerSnippets}

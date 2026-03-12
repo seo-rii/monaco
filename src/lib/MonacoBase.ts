@@ -1,7 +1,10 @@
 import * as M from 'monaco-editor';
 import type {
+	IMonacoDecoration,
+	IMonacoDecorationHover,
 	IMonacoDiffProviderResult,
 	IMonacoDiffSourcePair,
+	IMonacoLineHighlightOptions,
 	IMonacoModelSource,
 	IMonacoSnippet,
 	IMonacoSnippetLoader,
@@ -124,6 +127,40 @@ export const setModelMarkers = (
 	M.editor.setModelMarkers(targetModel, markerOwner, markers ?? []);
 	return () => {
 		if (!targetModel.isDisposed()) M.editor.setModelMarkers(targetModel, markerOwner, []);
+	};
+};
+
+const normalizeDecorationHover = (
+	value: IMonacoDecorationHover | undefined
+): M.IMarkdownString | M.IMarkdownString[] | undefined => {
+	if (value == null) return undefined;
+	return typeof value === 'string' ? { value } : value;
+};
+
+export const setModelDecorations = (
+	targetModel: M.editor.IModel | undefined,
+	decorations: IMonacoDecoration[] | undefined
+) => {
+	if (!targetModel) return;
+	const decorationIds = targetModel.deltaDecorations([], decorations ?? []);
+	return () => {
+		if (!targetModel.isDisposed()) targetModel.deltaDecorations(decorationIds, []);
+	};
+};
+
+export const createLineHighlightDecoration = (
+	lineNumber: number,
+	options: IMonacoLineHighlightOptions = {}
+): IMonacoDecoration => {
+	const { hoverMessage, glyphMarginHoverMessage, ...decorationOptions } = options;
+	return {
+		range: new M.Range(lineNumber, 1, lineNumber, 1),
+		options: {
+			isWholeLine: true,
+			...decorationOptions,
+			hoverMessage: normalizeDecorationHover(hoverMessage),
+			glyphMarginHoverMessage: normalizeDecorationHover(glyphMarginHoverMessage)
+		}
 	};
 };
 

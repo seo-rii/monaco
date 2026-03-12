@@ -1,6 +1,14 @@
 import type * as M from 'monaco-editor';
 
 export type IMonacoModelSource = [code: string, language: string, uri: string];
+export type IMonacoDecoration = M.editor.IModelDeltaDecoration;
+export type IMonacoDecorationHover = string | M.IMarkdownString | M.IMarkdownString[];
+
+export interface IMonacoLineHighlightOptions
+	extends Omit<M.editor.IModelDecorationOptions, 'isWholeLine' | 'hoverMessage' | 'glyphMarginHoverMessage'> {
+	hoverMessage?: IMonacoDecorationHover;
+	glyphMarginHoverMessage?: IMonacoDecorationHover;
+}
 
 export interface IMonacoSnippet {
 	label: string;

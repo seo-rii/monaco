@@ -1,58 +1,104 @@
-# create-svelte
+# @seorii/monaco
 
-Everything you need to build a Svelte library, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+Svelte wrapper components for Monaco Editor and Monaco Diff Editor with model loading, markers, snippets, LSP hooks, and model decorations.
 
-Read more about creating a library [in the docs](https://kit.svelte.dev/docs/packaging).
-
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
+## Install
 
 ```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
+npm install @seorii/monaco monaco-editor
 ```
 
-## Developing
+## Monaco
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+```svelte
+<script lang="ts">
+	import Monaco, { createLineHighlightDecoration, type IMonacoDecoration } from '@seorii/monaco';
 
-```bash
-npm run dev
+	let pausedLine = 4;
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+	const decorations: IMonacoDecoration[] = [
+		createLineHighlightDecoration(pausedLine, {
+			className: 'debug-line-highlight',
+			linesDecorationsClassName: 'debug-line-gutter',
+			glyphMarginClassName: 'debug-line-glyph',
+			glyphMarginHoverMessage: 'Paused here'
+		}),
+		{
+			range: {
+				startLineNumber: pausedLine,
+				startColumn: 1,
+				endLineNumber: pausedLine,
+				endColumn: 1
+			},
+			options: {
+				showIfCollapsed: true,
+				before: {
+					content: '  // active',
+					inlineClassName: 'debug-inline-hint',
+					inlineClassNameAffectsLetterSpacing: true
+				}
+			}
+		}
+	];
+</script>
+
+<Monaco
+	setting={{ automaticLayout: true, glyphMargin: true }}
+	active="main.py"
+	provider={async () => [
+		`def accumulate(values):
+    total = 0
+    for value in values:
+        total += value
+    return total`,
+		'python',
+		'/workspace/main.py'
+	]}
+	{decorations}
+/>
+
+<style>
+	:global(.debug-line-highlight) {
+		background: rgba(56, 189, 248, 0.14);
+		box-shadow: inset 3px 0 0 rgba(2, 132, 199, 0.85);
+	}
+
+	:global(.debug-line-gutter) {
+		border-left: 3px solid #0ea5e9;
+	}
+
+	:global(.debug-line-glyph) {
+		background: #0ea5e9;
+		border-radius: 999px;
+	}
+
+	:global(.debug-inline-hint) {
+		color: #0369a1;
+		font-style: italic;
+	}
+</style>
 ```
 
-Everything inside `src/lib` is part of your library, everything inside `src/routes` can be used as a showcase or preview app.
+## Diff
 
-## Building
+`MonacoDiff` supports the same model-level decoration flow per side:
 
-To build your library:
+- `originalDecorations`
+- `modifiedDecorations`
 
-```bash
-npm run package
-```
+Use Monaco's standard `IModelDeltaDecoration` objects for arbitrary ranges, injected text, gutter glyphs, and whole-line highlights.
 
-To create a production version of your showcase app:
+## Exports
 
-```bash
-npm run build
-```
+- `createModel`
+- `upsertModel`
+- `getModelByUri`
+- `setModelLanguage`
+- `setModelDecorations`
+- `createLineHighlightDecoration`
 
-You can preview the production build with `npm run preview`.
+## Notes
 
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
-
-## Publishing
-
-Go into the `package.json` and give your package the desired name through the `"name"` option. Also consider adding a `"license"` field and point it to a `LICENSE` file which you can create from a template (one popular option is the [MIT license](https://opensource.org/license/mit/)).
-
-To publish your library to [npm](https://www.npmjs.com):
-
-```bash
-npm publish
-```
+- Decoration styling is class-based. Add matching global CSS in the consuming app.
+- Empty-range injected text should usually include `showIfCollapsed: true`.
+- Decorations are applied to the active model and cleaned up automatically when the model changes or the component unmounts.

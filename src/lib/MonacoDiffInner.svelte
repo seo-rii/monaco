@@ -4,6 +4,7 @@
 		createOwnedTextModelRegistry,
 		createErrorReporter,
 		createSnippetRegistry,
+		setModelDecorations,
 		setModelMarkers,
 		toDiffSourcePair
 	} from '$lib/MonacoBase.js';
@@ -11,6 +12,7 @@
 	import lsp from '$lib/extensions/lsp.js';
 	import { untrack } from 'svelte';
 	import type {
+		IMonacoDecoration,
 		IMonacoDiffProviderResult,
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
@@ -36,6 +38,8 @@
 		lspurl?: (language: string) => string;
 		originalMarkers?: M.editor.IMarkerData[];
 		modifiedMarkers?: M.editor.IMarkerData[];
+		originalDecorations?: IMonacoDecoration[];
+		modifiedDecorations?: IMonacoDecoration[];
 		markerOwner?: string;
 		snippets?: IMonacoSnippetMap;
 		registerSnippets?: IMonacoSnippetLoader;
@@ -62,6 +66,8 @@
 		lspurl,
 		originalMarkers,
 		modifiedMarkers,
+		originalDecorations,
+		modifiedDecorations,
 		markerOwner,
 		snippets,
 		registerSnippets,
@@ -292,6 +298,16 @@
 	$effect(() => {
 		const currentModel = getSideModel('modified');
 		return setModelMarkers(currentModel, modifiedMarkers, markerOwner);
+	});
+
+	$effect(() => {
+		const currentModel = getSideModel('original');
+		return setModelDecorations(currentModel, originalDecorations);
+	});
+
+	$effect(() => {
+		const currentModel = getSideModel('modified');
+		return setModelDecorations(currentModel, modifiedDecorations);
 	});
 
 	$effect(() =>
