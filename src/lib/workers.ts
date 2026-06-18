@@ -3,16 +3,16 @@ type WorkerModule = { default: WorkerConstructor };
 type WorkerLoader = () => Promise<WorkerModule>;
 
 export const loadEditorWorker: WorkerLoader = () =>
-	import('monaco-editor/esm/vs/editor/editor.worker?worker') as Promise<WorkerModule>;
+	import('monaco-editor/esm/vs/editor/editor.worker.js?worker') as Promise<WorkerModule>;
 export const loadJsonWorker: WorkerLoader = () =>
-	import('monaco-editor/esm/vs/language/json/json.worker?worker') as Promise<WorkerModule>;
+	import('monaco-editor/esm/vs/language/json/json.worker.js?worker') as Promise<WorkerModule>;
 export const loadCssWorker: WorkerLoader = () =>
-	import('monaco-editor/esm/vs/language/css/css.worker?worker') as Promise<WorkerModule>;
+	import('monaco-editor/esm/vs/language/css/css.worker.js?worker') as Promise<WorkerModule>;
 export const loadHtmlWorker: WorkerLoader = () =>
-	import('monaco-editor/esm/vs/language/html/html.worker?worker') as Promise<WorkerModule>;
+	import('monaco-editor/esm/vs/language/html/html.worker.js?worker') as Promise<WorkerModule>;
 export const loadTsWorker: WorkerLoader = () =>
 	import(
-		'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
+		'monaco-editor/esm/vs/language/typescript/ts.worker.js?worker'
 	) as Promise<WorkerModule>;
 
 const workerModuleCache = new Map<WorkerLoader, Promise<WorkerModule>>();

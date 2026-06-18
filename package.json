@@ -1,6 +1,6 @@
 {
 	"name": "@seorii/monaco",
-	"version": "0.0.38",
+	"version": "0.1.0",
 	"scripts": {
 		"deploy": "npm run build && npm publish --access=public",
 		"dev": "vite dev",
@@ -36,8 +36,6 @@
 		"eslint": "^10.0.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.15.0",
-		"monaco-emacs": "^0.3.0",
-		"monaco-vim": "^0.4.4",
 		"prettier": "^3.8.1",
 		"prettier-plugin-svelte": "^3.5.0",
 		"publint": "^0.3.17",
@@ -54,10 +52,9 @@
 		"svelte": "^5.0.0"
 	},
 	"dependencies": {
-		"@codingame/monaco-jsonrpc": "^0.4.1",
-		"@hancomac/monaco-languageclient": "^1.1.0",
+		"monaco-emacs": "^0.3.0",
 		"monaco-editor": "^0.55.1",
 		"monaco-editor-workers": "^0.45.0",
-		"reconnecting-websocket": "^4.4.0"
+		"monaco-vim": "^0.4.4"
 	}
 }

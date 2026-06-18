@@ -4,6 +4,7 @@
 	import type {
 		IMonacoDecoration,
 		IMonacoDiffProviderResult,
+		IMonacoLspProvider,
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
 	} from '$lib/MonacoTypes.js';
@@ -44,6 +45,7 @@
 		theme?: string;
 		message?: HTMLElement | null;
 		lspurl?: (language: string) => string;
+		lsp?: IMonacoLspProvider;
 		children?: Snippet;
 		ref?: HTMLElement | null;
 		model?: M.editor.IDiffEditorModel;
@@ -76,6 +78,7 @@
 		readonly: readonlyProp,
 		theme = '',
 		lspurl,
+		lsp,
 		children,
 		originalMarkers,
 		modifiedMarkers,
@@ -121,6 +124,7 @@
 		readonly={readonlyProp}
 		{theme}
 		{lspurl}
+		{lsp}
 		{originalMarkers}
 		{modifiedMarkers}
 		{originalDecorations}

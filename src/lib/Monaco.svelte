@@ -3,6 +3,7 @@
 	import type { Snippet } from 'svelte';
 	import type {
 		IMonacoDecoration,
+		IMonacoLspProvider,
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
 	} from '$lib/MonacoTypes.js';
@@ -29,6 +30,7 @@
 		theme?: string;
 		message?: HTMLElement | null;
 		lspurl?: (language: string) => string;
+		lsp?: IMonacoLspProvider;
 		children?: Snippet;
 		ref?: HTMLElement | null;
 		model?: M.editor.IModel;
@@ -58,6 +60,7 @@
 		readonly: readonlyProp,
 		theme = '',
 		lspurl,
+		lsp,
 		children,
 		markers,
 		decorations,
@@ -100,6 +103,7 @@
 		readonly={readonlyProp}
 		{theme}
 		{lspurl}
+		{lsp}
 		{markers}
 		{decorations}
 		{markerOwner}

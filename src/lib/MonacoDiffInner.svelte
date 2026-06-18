@@ -14,6 +14,7 @@
 	import type {
 		IMonacoDecoration,
 		IMonacoDiffProviderResult,
+		IMonacoLspProvider,
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
 	} from '$lib/MonacoTypes.js';
@@ -36,6 +37,7 @@
 		theme: string;
 		message: HTMLElement | null;
 		lspurl?: (language: string) => string;
+		lsp?: IMonacoLspProvider;
 		originalMarkers?: M.editor.IMarkerData[];
 		modifiedMarkers?: M.editor.IMarkerData[];
 		originalDecorations?: IMonacoDecoration[];
@@ -64,6 +66,7 @@
 		readonly: readonlyProp,
 		theme,
 		lspurl,
+		lsp: lspProvider,
 		originalMarkers,
 		modifiedMarkers,
 		originalDecorations,
@@ -367,9 +370,11 @@
 		let cancelled = false;
 		(async () => {
 			try {
-				const url = lspurl && (await lspurl(language));
-				if (!url || cancelled) return;
-				const dispose = await lsp(language, url);
+				const connection = lspProvider
+					? await lspProvider(language)
+					: lspurl && (await lspurl(language));
+				if (!connection || cancelled) return;
+				const dispose = await lsp(language, connection);
 				if (cancelled) {
 					dispose?.();
 					return;

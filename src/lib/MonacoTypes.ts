@@ -35,3 +35,40 @@ export interface IMonacoDiffSourcePair {
 export type IMonacoDiffProviderResult =
 	| IMonacoDiffSourcePair
 	| [original: IMonacoModelSource, modified: IMonacoModelSource];
+
+export type IMonacoLspNativeTransport = ConstructorParameters<typeof M.lsp.MonacoLspClient>[0];
+export type IMonacoLspMessage = Parameters<IMonacoLspNativeTransport['send']>[0];
+
+export interface IMonacoLspMessageReader {
+	listen(callback: (message: IMonacoLspMessage) => void): M.IDisposable;
+	onClose?: (listener: () => void) => M.IDisposable;
+	dispose?: () => void;
+}
+
+export interface IMonacoLspMessageWriter {
+	write(message: IMonacoLspMessage): Promise<void>;
+	dispose?: () => void;
+	end?: () => void;
+}
+
+export interface IMonacoLspMessageTransports {
+	reader: IMonacoLspMessageReader;
+	writer: IMonacoLspMessageWriter;
+	dispose?: () => void;
+}
+
+export interface IMonacoLspServerHandle {
+	transport: IMonacoLspMessageTransports;
+	dispose?: () => void;
+}
+
+export type IMonacoLspConnection =
+	| string
+	| IMonacoLspNativeTransport
+	| IMonacoLspMessageTransports
+	| IMonacoLspServerHandle;
+
+export type IMonacoLspProviderResult = IMonacoLspConnection | null | undefined;
+export type IMonacoLspProvider = (
+	language: string
+) => IMonacoLspProviderResult | Promise<IMonacoLspProviderResult>;
