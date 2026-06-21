@@ -14,6 +14,7 @@
 	import type {
 		IMonacoDecoration,
 		IMonacoDiffProviderResult,
+		IMonacoLspClientOptions,
 		IMonacoLspProvider,
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
@@ -38,6 +39,7 @@
 		message: HTMLElement | null;
 		lspurl?: (language: string) => string;
 		lsp?: IMonacoLspProvider;
+		lspOptions?: IMonacoLspClientOptions;
 		originalMarkers?: M.editor.IMarkerData[];
 		modifiedMarkers?: M.editor.IMarkerData[];
 		originalDecorations?: IMonacoDecoration[];
@@ -67,6 +69,7 @@
 		theme,
 		lspurl,
 		lsp: lspProvider,
+		lspOptions,
 		originalMarkers,
 		modifiedMarkers,
 		originalDecorations,
@@ -374,7 +377,10 @@
 					? await lspProvider(language)
 					: lspurl && (await lspurl(language));
 				if (!connection || cancelled) return;
-				const dispose = await lsp(language, connection);
+				const dispose = await lsp(language, connection, {
+					...lspOptions,
+					model: model.modified
+				});
 				if (cancelled) {
 					dispose?.();
 					return;

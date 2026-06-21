@@ -4,6 +4,7 @@
 	import type {
 		IMonacoDecoration,
 		IMonacoDiffProviderResult,
+		IMonacoLspClientOptions,
 		IMonacoLspProvider,
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
@@ -46,6 +47,7 @@
 		message?: HTMLElement | null;
 		lspurl?: (language: string) => string;
 		lsp?: IMonacoLspProvider;
+		lspOptions?: IMonacoLspClientOptions;
 		children?: Snippet;
 		ref?: HTMLElement | null;
 		model?: M.editor.IDiffEditorModel;
@@ -79,6 +81,7 @@
 		theme = '',
 		lspurl,
 		lsp,
+		lspOptions,
 		children,
 		originalMarkers,
 		modifiedMarkers,
@@ -125,6 +128,7 @@
 		{theme}
 		{lspurl}
 		{lsp}
+		{lspOptions}
 		{originalMarkers}
 		{modifiedMarkers}
 		{originalDecorations}

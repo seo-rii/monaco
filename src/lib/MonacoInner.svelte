@@ -13,6 +13,7 @@
 	import type { IMonacoInputEvent, IMonacoSetting } from '$lib/Monaco.svelte';
 	import type {
 		IMonacoDecoration,
+		IMonacoLspClientOptions,
 		IMonacoLspProvider,
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
@@ -30,6 +31,7 @@
 		message: HTMLElement | null;
 		lspurl?: (language: string) => string;
 		lsp?: IMonacoLspProvider;
+		lspOptions?: IMonacoLspClientOptions;
 		markers?: M.editor.IMarkerData[];
 		decorations?: IMonacoDecoration[];
 		markerOwner?: string;
@@ -56,6 +58,7 @@
 		theme,
 		lspurl,
 		lsp: lspProvider,
+		lspOptions,
 		markers,
 		decorations,
 		markerOwner,
@@ -276,7 +279,7 @@
 					? await lspProvider(language)
 					: lspurl && (await lspurl(language));
 				if (!connection || cancelled) return;
-				const dispose = await lsp(language, connection);
+				const dispose = await lsp(language, connection, { ...lspOptions, model });
 				if (cancelled) {
 					dispose?.();
 					return;

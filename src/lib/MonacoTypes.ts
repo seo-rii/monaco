@@ -4,8 +4,10 @@ export type IMonacoModelSource = [code: string, language: string, uri: string];
 export type IMonacoDecoration = M.editor.IModelDeltaDecoration;
 export type IMonacoDecorationHover = string | M.IMarkdownString | M.IMarkdownString[];
 
-export interface IMonacoLineHighlightOptions
-	extends Omit<M.editor.IModelDecorationOptions, 'isWholeLine' | 'hoverMessage' | 'glyphMarginHoverMessage'> {
+export interface IMonacoLineHighlightOptions extends Omit<
+	M.editor.IModelDecorationOptions,
+	'isWholeLine' | 'hoverMessage' | 'glyphMarginHoverMessage'
+> {
 	hoverMessage?: IMonacoDecorationHover;
 	glyphMarginHoverMessage?: IMonacoDecorationHover;
 }
@@ -60,6 +62,24 @@ export interface IMonacoLspMessageTransports {
 export interface IMonacoLspServerHandle {
 	transport: IMonacoLspMessageTransports;
 	dispose?: () => void;
+}
+
+export interface IMonacoLspDocumentSyncOptions {
+	enabled?: boolean;
+	openDelayMs?: number;
+	initializedDelayMs?: number;
+	workspaceName?: string;
+}
+
+export interface IMonacoLspTraceEvent {
+	direction: 'in' | 'out';
+	message: IMonacoLspMessage;
+}
+
+export interface IMonacoLspClientOptions {
+	documentSync?: boolean | IMonacoLspDocumentSyncOptions;
+	model?: M.editor.ITextModel;
+	trace?: (event: IMonacoLspTraceEvent) => void;
 }
 
 export type IMonacoLspConnection =

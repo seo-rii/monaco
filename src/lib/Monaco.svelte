@@ -3,6 +3,7 @@
 	import type { Snippet } from 'svelte';
 	import type {
 		IMonacoDecoration,
+		IMonacoLspClientOptions,
 		IMonacoLspProvider,
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
@@ -31,6 +32,7 @@
 		message?: HTMLElement | null;
 		lspurl?: (language: string) => string;
 		lsp?: IMonacoLspProvider;
+		lspOptions?: IMonacoLspClientOptions;
 		children?: Snippet;
 		ref?: HTMLElement | null;
 		model?: M.editor.IModel;
@@ -61,6 +63,7 @@
 		theme = '',
 		lspurl,
 		lsp,
+		lspOptions,
 		children,
 		markers,
 		decorations,
@@ -104,6 +107,7 @@
 		{theme}
 		{lspurl}
 		{lsp}
+		{lspOptions}
 		{markers}
 		{decorations}
 		{markerOwner}

@@ -1,6 +1,7 @@
 import * as M from 'monaco-editor';
 import type {
 	IMonacoLspConnection,
+	IMonacoLspClientOptions,
 	IMonacoLspMessage,
 	IMonacoLspMessageTransports,
 	IMonacoLspNativeTransport,
@@ -11,6 +12,13 @@ import type {
 type NativeConnectionState = IMonacoLspNativeTransport['state']['value'];
 type NativeStateChangeEvent = IMonacoLspNativeTransport['state']['onChange'];
 type MessageListener = Parameters<IMonacoLspNativeTransport['setListener']>[0];
+
+interface ResolvedDocumentSyncOptions {
+	model: M.editor.ITextModel;
+	openDelayMs: number;
+	initializedDelayMs: number;
+	workspaceName: string;
+}
 
 const languages: Record<string, M.languages.ILanguageExtensionPoint> = {
 	python: {
@@ -190,7 +198,8 @@ class BrowserWebSocketTransport extends DisposableNativeTransport implements M.I
 		});
 		this.#socket.addEventListener('message', (event) => {
 			try {
-				if (typeof event.data !== 'string') throw new Error('LSP WebSocket only supports text JSON-RPC messages');
+				if (typeof event.data !== 'string')
+					throw new Error('LSP WebSocket only supports text JSON-RPC messages');
 				this.receive(JSON.parse(event.data) as IMonacoLspMessage);
 			} catch (error) {
 				console.warn('[Monaco LSP] Failed to read WebSocket message:', error);
@@ -215,7 +224,10 @@ class BrowserWebSocketTransport extends DisposableNativeTransport implements M.I
 
 	dispose() {
 		this.#disposed = true;
-		if (this.#socket.readyState === WebSocket.CONNECTING || this.#socket.readyState === WebSocket.OPEN) {
+		if (
+			this.#socket.readyState === WebSocket.CONNECTING ||
+			this.#socket.readyState === WebSocket.OPEN
+		) {
 			this.#socket.close();
 		}
 		this.close();
@@ -301,6 +313,200 @@ function isNativeTransport(connection: unknown): connection is IMonacoLspNativeT
 	);
 }
 
+function resolveDocumentSyncOptions(
+	options: IMonacoLspClientOptions | undefined
+): ResolvedDocumentSyncOptions | null {
+	const documentSync = options?.documentSync;
+	if (documentSync === false || !options?.model) return null;
+	if (typeof documentSync === 'object' && documentSync.enabled === false) return null;
+	return {
+		model: options.model,
+		openDelayMs:
+			typeof documentSync === 'object' && documentSync.openDelayMs !== undefined
+				? documentSync.openDelayMs
+				: 2000,
+		initializedDelayMs:
+			typeof documentSync === 'object' && documentSync.initializedDelayMs !== undefined
+				? documentSync.initializedDelayMs
+				: 1200,
+		workspaceName:
+			typeof documentSync === 'object' && documentSync.workspaceName
+				? documentSync.workspaceName
+				: 'workspace'
+	};
+}
+
+function traceMessage(
+	options: IMonacoLspClientOptions | undefined,
+	direction: 'in' | 'out',
+	message: IMonacoLspMessage
+) {
+	options?.trace?.({ direction, message });
+}
+
+function withMessageInterceptors(
+	transports: IMonacoLspMessageTransports,
+	options: IMonacoLspClientOptions | undefined
+): IMonacoLspMessageTransports {
+	const documentSync = resolveDocumentSyncOptions(options);
+	if (!documentSync && !options?.trace) return transports;
+
+	const model = documentSync?.model;
+	const documentUri = model?.uri.toString(true).toLowerCase() ?? '';
+	const workspaceUri = documentUri.replace(/\/[^/]*$/u, '') || 'file:///workspace';
+	let disposed = false;
+	let opened = false;
+	let openTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
+	let modelContentDisposable: M.IDisposable | null = null;
+	const clearOpenTimer = () => {
+		if (openTimer === null) return;
+		globalThis.clearTimeout(openTimer);
+		openTimer = null;
+	};
+	const write = (message: IMonacoLspMessage) => {
+		traceMessage(options, 'out', message);
+		void transports.writer.write(message).catch(() => {});
+	};
+	const openDocument = () => {
+		if (!documentSync || !model || disposed || opened || model.isDisposed()) return;
+		opened = true;
+		write({
+			jsonrpc: '2.0',
+			method: 'textDocument/didOpen',
+			params: {
+				textDocument: {
+					uri: documentUri,
+					languageId: model.getLanguageId(),
+					version: model.getVersionId(),
+					text: model.getValue()
+				}
+			}
+		} as IMonacoLspMessage);
+		modelContentDisposable = model.onDidChangeContent(() => {
+			if (disposed || model.isDisposed()) return;
+			write({
+				jsonrpc: '2.0',
+				method: 'textDocument/didChange',
+				params: {
+					textDocument: {
+						uri: documentUri,
+						version: model.getVersionId()
+					},
+					contentChanges: [{ text: model.getValue() }]
+				}
+			} as IMonacoLspMessage);
+		});
+	};
+	const scheduleOpenDocument = (delay: number) => {
+		if (!documentSync) return;
+		clearOpenTimer();
+		openTimer = globalThis.setTimeout(() => {
+			openTimer = null;
+			openDocument();
+		}, delay);
+	};
+	return {
+		reader: {
+			listen(callback) {
+				const disposable = transports.reader.listen((message) => {
+					traceMessage(options, 'in', message);
+					callback(message);
+				});
+				scheduleOpenDocument(documentSync?.openDelayMs ?? 0);
+				return disposable;
+			},
+			onClose: transports.reader.onClose?.bind(transports.reader),
+			dispose: transports.reader.dispose?.bind(transports.reader)
+		},
+		writer: {
+			write(message) {
+				const record = message as unknown as Record<string, unknown>;
+				const outgoing =
+					documentSync &&
+					record &&
+					typeof record === 'object' &&
+					record.method === 'initialize' &&
+					record.params &&
+					typeof record.params === 'object'
+						? ({
+								...record,
+								params: {
+									...(record.params as Record<string, unknown>),
+									rootUri: workspaceUri,
+									workspaceFolders: [
+										{
+											uri: workspaceUri,
+											name: documentSync.workspaceName
+										}
+									]
+								}
+							} as unknown as IMonacoLspMessage)
+						: message;
+				const outgoingRecord = outgoing as unknown as Record<string, unknown>;
+				const method =
+					outgoingRecord && typeof outgoingRecord.method === 'string'
+						? outgoingRecord.method
+						: '';
+				const params =
+					outgoingRecord && typeof outgoingRecord.params === 'object'
+						? (outgoingRecord.params as Record<string, unknown>)
+						: null;
+				const textDocument =
+					params && typeof params.textDocument === 'object'
+						? (params.textDocument as Record<string, unknown>)
+						: null;
+				const outgoingUri =
+					typeof textDocument?.uri === 'string' ? textDocument.uri.toLowerCase() : '';
+				if (documentSync && outgoingUri === documentUri) {
+					if (method === 'textDocument/didOpen') {
+						if (opened) return Promise.resolve();
+						opened = true;
+						clearOpenTimer();
+					} else if (method === 'textDocument/didChange' && modelContentDisposable) {
+						return Promise.resolve();
+					} else if (method === 'textDocument/didClose') {
+						opened = false;
+						modelContentDisposable?.dispose();
+						modelContentDisposable = null;
+					}
+				}
+				traceMessage(options, 'out', outgoing);
+				const result = transports.writer.write(outgoing);
+				if (documentSync && method === 'initialized') {
+					scheduleOpenDocument(documentSync.initializedDelayMs);
+				}
+				return result;
+			},
+			dispose: transports.writer.dispose?.bind(transports.writer),
+			end: transports.writer.end?.bind(transports.writer)
+		},
+		dispose() {
+			disposed = true;
+			clearOpenTimer();
+			modelContentDisposable?.dispose();
+			modelContentDisposable = null;
+			transports.dispose?.();
+		}
+	};
+}
+
+function withClientOptions(
+	connection: IMonacoLspConnection,
+	options: IMonacoLspClientOptions | undefined
+): IMonacoLspConnection {
+	if (!options?.trace && !resolveDocumentSyncOptions(options)) return connection;
+	if (isServerHandle(connection)) {
+		return {
+			transport: withMessageInterceptors(connection.transport, options),
+			dispose: () => connection.dispose?.()
+		};
+	}
+	if (isReaderWriterTransport(connection)) {
+		return withMessageInterceptors(connection, options);
+	}
+	return connection;
+}
+
 function resolveTransport(connection: IMonacoLspConnection): {
 	transport: IMonacoLspNativeTransport;
 	dispose?: () => void;
@@ -316,7 +522,8 @@ function resolveTransport(connection: IMonacoLspConnection): {
 	if (isNativeTransport(connection)) {
 		return {
 			transport: connection,
-			dispose: 'dispose' in connection ? () => (connection as M.IDisposable).dispose() : undefined
+			dispose:
+				'dispose' in connection ? () => (connection as M.IDisposable).dispose() : undefined
 		};
 	}
 
@@ -344,10 +551,11 @@ function resolveTransport(connection: IMonacoLspConnection): {
 
 export default async function (
 	language: string,
-	connection: Exclude<IMonacoLspProviderResult, null | undefined>
+	connection: Exclude<IMonacoLspProviderResult, null | undefined>,
+	options?: IMonacoLspClientOptions
 ) {
 	registerLanguage(language);
-	const { transport, dispose } = resolveTransport(connection);
+	const { transport, dispose } = resolveTransport(withClientOptions(connection, options));
 	const languageClient = new ManagedMonacoLspClient(transport);
 
 	return () => {
