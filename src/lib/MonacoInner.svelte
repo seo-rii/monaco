@@ -7,6 +7,7 @@
 		setModelDecorations,
 		setModelMarkers
 	} from '$lib/MonacoBase.js';
+	import { registerAonohakoLanguages } from '$lib/customLanguages.js';
 	import * as M from 'monaco-editor';
 	import lsp from '$lib/extensions/lsp.js';
 	import { untrack } from 'svelte';
@@ -18,6 +19,8 @@
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
 	} from '$lib/MonacoTypes.js';
+
+	registerAonohakoLanguages(M);
 
 	interface IMonacoInner {
 		ref: HTMLElement | null;
