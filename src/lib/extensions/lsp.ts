@@ -258,10 +258,7 @@ class ReaderWriterTransport extends DisposableNativeTransport implements M.IDisp
 	dispose() {
 		this.#readerDisposable?.dispose();
 		this.#closeDisposable?.dispose();
-		this.#transports.writer.end?.();
-		this.#transports.reader.dispose?.();
-		this.#transports.writer.dispose?.();
-		this.#transports.dispose?.();
+		disposeMessageTransports(this.#transports);
 		this.close();
 	}
 
@@ -311,6 +308,27 @@ function isNativeTransport(connection: unknown): connection is IMonacoLspNativeT
 		'send' in connection &&
 		'setListener' in connection
 	);
+}
+
+function disposeMessageTransports(transports: IMonacoLspMessageTransports) {
+	transports.writer.end?.();
+	transports.reader.dispose?.();
+	transports.writer.dispose?.();
+	transports.dispose?.();
+}
+
+export function disposeLspConnection(connection: IMonacoLspConnection) {
+	if (typeof connection === 'string') return;
+	if (isNativeTransport(connection)) {
+		if ('dispose' in connection) (connection as M.IDisposable).dispose();
+		return;
+	}
+	if (isServerHandle(connection)) {
+		disposeMessageTransports(connection.transport);
+		connection.dispose?.();
+		return;
+	}
+	if (isReaderWriterTransport(connection)) disposeMessageTransports(connection);
 }
 
 function resolveDocumentSyncOptions(
@@ -556,7 +574,13 @@ export default async function (
 ) {
 	registerLanguage(language);
 	const { transport, dispose } = resolveTransport(withClientOptions(connection, options));
-	const languageClient = new ManagedMonacoLspClient(transport);
+	let languageClient: ManagedMonacoLspClient;
+	try {
+		languageClient = new ManagedMonacoLspClient(transport);
+	} catch (error) {
+		dispose?.();
+		throw error;
+	}
 
 	return () => {
 		languageClient.dispose();

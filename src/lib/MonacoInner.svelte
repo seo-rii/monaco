@@ -9,13 +9,14 @@
 	} from '$lib/MonacoBase.js';
 	import { registerAonohakoLanguages } from '$lib/customLanguages.js';
 	import * as M from 'monaco-editor';
-	import lsp from '$lib/extensions/lsp.js';
+	import { startMonacoLspSession } from '$lib/extensions/lspSession.js';
 	import { untrack } from 'svelte';
 	import type { IMonacoInputEvent, IMonacoSetting } from '$lib/Monaco.svelte';
 	import type {
 		IMonacoDecoration,
 		IMonacoLspClientOptions,
 		IMonacoLspProvider,
+		IMonacoLspStatusHandler,
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
 	} from '$lib/MonacoTypes.js';
@@ -35,6 +36,7 @@
 		lspurl?: (language: string) => string;
 		lsp?: IMonacoLspProvider;
 		lspOptions?: IMonacoLspClientOptions;
+		onlspstatus?: IMonacoLspStatusHandler;
 		markers?: M.editor.IMarkerData[];
 		decorations?: IMonacoDecoration[];
 		markerOwner?: string;
@@ -62,6 +64,7 @@
 		lspurl,
 		lsp: lspProvider,
 		lspOptions,
+		onlspstatus,
 		markers,
 		decorations,
 		markerOwner,
@@ -270,34 +273,16 @@
 		};
 	});
 
-	let _lsp: (() => void) | undefined;
-
 	$effect(() => {
-		if (!loaded || !model) return;
-		const language = model.getLanguageId();
-		let cancelled = false;
-		(async () => {
-			try {
-				const connection = lspProvider
-					? await lspProvider(language)
-					: lspurl && (await lspurl(language));
-				if (!connection || cancelled) return;
-				const dispose = await lsp(language, connection, { ...lspOptions, model });
-				if (cancelled) {
-					dispose?.();
-					return;
-				}
-				_lsp = dispose;
-			} catch (e) {
-				reportError(e, 'LSP connection failed');
-			}
-		})();
-		return () => {
-			cancelled = true;
-			const dispose = untrack(() => _lsp);
-			_lsp = undefined;
-			dispose?.();
-		};
+		if (!loaded || !model || (!lspProvider && !lspurl)) return;
+		return startMonacoLspSession({
+			model,
+			provider: lspProvider,
+			urlProvider: lspurl,
+			clientOptions: lspOptions,
+			onStatus: onlspstatus,
+			onError: reportError
+		});
 	});
 
 	$effect(() => {

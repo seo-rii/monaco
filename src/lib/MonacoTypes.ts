@@ -82,6 +82,24 @@ export interface IMonacoLspClientOptions {
 	trace?: (event: IMonacoLspTraceEvent) => void;
 }
 
+export interface IMonacoLspProviderContext {
+	language: string;
+	model: M.editor.ITextModel;
+	uri: string;
+	signal: AbortSignal;
+}
+
+export type IMonacoLspStatus =
+	| (Pick<IMonacoLspProviderContext, 'language' | 'uri'> & {
+			state: 'connecting' | 'ready' | 'disabled';
+	  })
+	| (Pick<IMonacoLspProviderContext, 'language' | 'uri'> & {
+			state: 'error';
+			error: Error;
+	  });
+
+export type IMonacoLspStatusHandler = (status: IMonacoLspStatus) => void;
+
 export type IMonacoLspConnection =
 	| string
 	| IMonacoLspNativeTransport
@@ -90,5 +108,6 @@ export type IMonacoLspConnection =
 
 export type IMonacoLspProviderResult = IMonacoLspConnection | null | undefined;
 export type IMonacoLspProvider = (
-	language: string
+	language: string,
+	context: IMonacoLspProviderContext
 ) => IMonacoLspProviderResult | Promise<IMonacoLspProviderResult>;

@@ -5,6 +5,7 @@
 		IMonacoDecoration,
 		IMonacoLspClientOptions,
 		IMonacoLspProvider,
+		IMonacoLspStatusHandler,
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
 	} from '$lib/MonacoTypes.js';
@@ -33,6 +34,7 @@
 		lspurl?: (language: string) => string;
 		lsp?: IMonacoLspProvider;
 		lspOptions?: IMonacoLspClientOptions;
+		onlspstatus?: IMonacoLspStatusHandler;
 		children?: Snippet;
 		ref?: HTMLElement | null;
 		model?: M.editor.IModel;
@@ -64,6 +66,7 @@
 		lspurl,
 		lsp,
 		lspOptions,
+		onlspstatus,
 		children,
 		markers,
 		decorations,
@@ -108,6 +111,7 @@
 		{lspurl}
 		{lsp}
 		{lspOptions}
+		{onlspstatus}
 		{markers}
 		{decorations}
 		{markerOwner}
