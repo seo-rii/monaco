@@ -65,7 +65,6 @@
 	},
 	"dependencies": {
 		"monaco-editor": "^0.55.1",
-		"monaco-editor-workers": "^0.45.0",
 		"monaco-emacs": "^0.3.0",
 		"monaco-vim": "^0.4.4",
 		"vscode-oniguruma": "^2.0.1",
