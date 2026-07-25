@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { Keybind, setTheme } from '$lib/extensions';
+	import {
+		createMonacoExtensionHost,
+		getMonacoRuntime,
+		isMonacoBuiltinFeatureEnabled,
+		Keybind,
+		setTheme
+	} from '$lib/extensions';
 	import {
 		createOwnedTextModelRegistry,
 		createErrorReporter,
@@ -21,8 +27,6 @@
 		IMonacoSnippetMap
 	} from '$lib/MonacoTypes.js';
 
-	registerAonohakoLanguages(M);
-
 	interface IMonacoInner {
 		ref: HTMLElement | null;
 		models: Record<string, Promise<M.editor.IModel | undefined>>;
@@ -42,6 +46,9 @@
 		markerOwner?: string;
 		snippets?: IMonacoSnippetMap;
 		registerSnippets?: IMonacoSnippetLoader;
+		features?: import('$lib/extensions').IMonacoBuiltinFeatures;
+		extensions?: import('$lib/extensions').IMonacoExtensions;
+		runtime?: import('$lib/extensions').IMonacoRuntime;
 		onchange?: (m: M.editor.IModel) => void;
 		oninput?: (event: IMonacoInputEvent) => void;
 		oncursor?: (position: M.Position) => void;
@@ -70,6 +77,9 @@
 		markerOwner,
 		snippets,
 		registerSnippets,
+		features,
+		extensions,
+		runtime,
 		onchange,
 		oninput,
 		oncursor,
@@ -198,12 +208,20 @@
 	});
 
 	$effect(() =>
-		createSnippetRegistry({
-			snippets,
-			registerSnippets,
-			reportError
-		})
+		isMonacoBuiltinFeatureEnabled(features, 'snippets')
+			? createSnippetRegistry({
+					snippets,
+					registerSnippets,
+					reportError
+				})
+			: undefined
 	);
+
+	$effect(() => {
+		if (!loaded || !isMonacoBuiltinFeatureEnabled(features, 'aonohakoLanguages')) return;
+		const registration = registerAonohakoLanguages(M);
+		return () => registration.dispose();
+	});
 
 	$effect(() => {
 		if (!loaded || !provider || !ins) return;
@@ -241,12 +259,23 @@
 
 	$effect(() => {
 		_keybind =
-			loaded && ins && message && setting.key ? Keybind[setting.key]?.(ins, message) : null;
+			loaded &&
+			ins &&
+			message &&
+			setting.key &&
+			isMonacoBuiltinFeatureEnabled(features, 'keybindings')
+				? Keybind[setting.key]?.(ins, message)
+				: null;
 		return () => _keybind?.dispose?.();
 	});
 
 	$effect(() => {
-		if (!loaded || !ins || !setting.power) {
+		if (
+			!loaded ||
+			!ins ||
+			!setting.power ||
+			!isMonacoBuiltinFeatureEnabled(features, 'powerMode')
+		) {
 			_powermode?.dispose?.();
 			_powermode = null;
 			return;
@@ -274,7 +303,13 @@
 	});
 
 	$effect(() => {
-		if (!loaded || !model || (!lspProvider && !lspurl)) return;
+		if (
+			!loaded ||
+			!model ||
+			(!lspProvider && !lspurl) ||
+			!isMonacoBuiltinFeatureEnabled(features, 'lsp')
+		)
+			return;
 		return startMonacoLspSession({
 			model,
 			provider: lspProvider,
@@ -283,6 +318,27 @@
 			onStatus: onlspstatus,
 			onError: reportError
 		});
+	});
+
+	$effect(() => {
+		if (!loaded || !ins) return;
+		const selectedRuntime = runtime ?? getMonacoRuntime();
+		const extensionHost = createMonacoExtensionHost({
+			monaco: M,
+			kind: 'code',
+			host: ins,
+			editors: new Map([['main' as const, ins]]),
+			getActive: () => active,
+			reportError
+		});
+		const applyExtensions = () =>
+			extensionHost.setExtensions([...selectedRuntime.extensions, ...(extensions ?? [])]);
+		const runtimeDisposable = selectedRuntime.onDidChange(applyExtensions);
+		applyExtensions();
+		return () => {
+			runtimeDisposable.dispose();
+			extensionHost.dispose();
+		};
 	});
 
 	$effect(() => {

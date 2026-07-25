@@ -2,6 +2,7 @@ import * as M from 'monaco-editor';
 import type {
 	IMonacoLspConnection,
 	IMonacoLspClientOptions,
+	IMonacoLspFeatureOptions,
 	IMonacoLspMessage,
 	IMonacoLspMessageTransports,
 	IMonacoLspNativeTransport,
@@ -277,6 +278,194 @@ class ManagedMonacoLspClient extends M.lsp.MonacoLspClient implements M.IDisposa
 	dispose() {
 		clientFeatureStores.get(this)?.dispose();
 		clientFeatureStores.delete(this);
+	}
+}
+
+const serverCapabilityKeys: Partial<Record<keyof IMonacoLspFeatureOptions, string>> = {
+	completion: 'completionProvider',
+	hover: 'hoverProvider',
+	signatureHelp: 'signatureHelpProvider',
+	definition: 'definitionProvider',
+	declaration: 'declarationProvider',
+	typeDefinition: 'typeDefinitionProvider',
+	implementation: 'implementationProvider',
+	references: 'referencesProvider',
+	documentHighlights: 'documentHighlightProvider',
+	documentSymbols: 'documentSymbolProvider',
+	rename: 'renameProvider',
+	codeActions: 'codeActionProvider',
+	codeLens: 'codeLensProvider',
+	documentLinks: 'documentLinkProvider',
+	documentFormatting: 'documentFormattingProvider',
+	rangeFormatting: 'documentRangeFormattingProvider',
+	onTypeFormatting: 'documentOnTypeFormattingProvider',
+	foldingRanges: 'foldingRangeProvider',
+	selectionRanges: 'selectionRangeProvider',
+	inlayHints: 'inlayHintProvider',
+	semanticTokens: 'semanticTokensProvider',
+	diagnostics: 'diagnosticProvider',
+	workspaceSymbols: 'workspaceSymbolProvider',
+	inlineCompletions: 'inlineCompletionProvider'
+};
+
+const registrationMethods: Partial<Record<string, keyof IMonacoLspFeatureOptions>> = {
+	'textDocument/completion': 'completion',
+	'textDocument/hover': 'hover',
+	'textDocument/signatureHelp': 'signatureHelp',
+	'textDocument/definition': 'definition',
+	'textDocument/declaration': 'declaration',
+	'textDocument/typeDefinition': 'typeDefinition',
+	'textDocument/implementation': 'implementation',
+	'textDocument/references': 'references',
+	'textDocument/documentHighlight': 'documentHighlights',
+	'textDocument/documentSymbol': 'documentSymbols',
+	'textDocument/rename': 'rename',
+	'textDocument/codeAction': 'codeActions',
+	'textDocument/codeLens': 'codeLens',
+	'textDocument/documentLink': 'documentLinks',
+	'textDocument/formatting': 'documentFormatting',
+	'textDocument/rangeFormatting': 'rangeFormatting',
+	'textDocument/onTypeFormatting': 'onTypeFormatting',
+	'textDocument/foldingRange': 'foldingRanges',
+	'textDocument/selectionRange': 'selectionRanges',
+	'textDocument/inlayHint': 'inlayHints',
+	'textDocument/semanticTokens': 'semanticTokens',
+	'textDocument/diagnostic': 'diagnostics',
+	'workspace/symbol': 'workspaceSymbols',
+	'textDocument/inlineCompletion': 'inlineCompletions'
+};
+
+function isLspFeatureEnabled(
+	features: false | IMonacoLspFeatureOptions,
+	feature: keyof IMonacoLspFeatureOptions
+) {
+	return features !== false && features[feature] !== false;
+}
+
+function filterObjectFeatures(
+	value: Record<string, unknown>,
+	features: false | IMonacoLspFeatureOptions
+) {
+	const result = { ...value };
+	for (const [feature, key] of Object.entries(serverCapabilityKeys) as Array<
+		[keyof IMonacoLspFeatureOptions, string]
+	>) {
+		if (!isLspFeatureEnabled(features, feature)) delete result[key];
+	}
+	return result;
+}
+
+function filterIncomingLspMessage(
+	message: IMonacoLspMessage,
+	features: false | IMonacoLspFeatureOptions
+): IMonacoLspMessage | undefined {
+	const record = message as unknown as Record<string, unknown>;
+	if (
+		record.method === 'textDocument/publishDiagnostics' &&
+		!isLspFeatureEnabled(features, 'diagnostics')
+	) {
+		return;
+	}
+	if (record.method === 'client/registerCapability' && record.params) {
+		const params = record.params as Record<string, unknown>;
+		const registrations = Array.isArray(params.registrations)
+			? params.registrations.filter((registration) => {
+					const method = (registration as Record<string, unknown>).method;
+					const feature = typeof method === 'string' ? registrationMethods[method] : undefined;
+					return !feature || isLspFeatureEnabled(features, feature);
+				})
+			: params.registrations;
+		return {
+			...record,
+			params: { ...params, registrations }
+		} as unknown as IMonacoLspMessage;
+	}
+	if (record.result && typeof record.result === 'object') {
+		const result = record.result as Record<string, unknown>;
+		if (result.capabilities && typeof result.capabilities === 'object') {
+			return {
+				...record,
+				result: {
+					...result,
+					capabilities: filterObjectFeatures(
+						result.capabilities as Record<string, unknown>,
+						features
+					)
+				}
+			} as unknown as IMonacoLspMessage;
+		}
+	}
+	return message;
+}
+
+function filterOutgoingLspMessage(
+	message: IMonacoLspMessage,
+	features: false | IMonacoLspFeatureOptions
+): IMonacoLspMessage {
+	const record = message as unknown as Record<string, unknown>;
+	if (record.method !== 'initialize' || !record.params || typeof record.params !== 'object') {
+		return message;
+	}
+	const params = record.params as Record<string, unknown>;
+	const capabilities =
+		params.capabilities && typeof params.capabilities === 'object'
+			? (params.capabilities as Record<string, unknown>)
+			: {};
+	const textDocument =
+		capabilities.textDocument && typeof capabilities.textDocument === 'object'
+			? { ...(capabilities.textDocument as Record<string, unknown>) }
+			: {};
+	for (const [method, feature] of Object.entries(registrationMethods)) {
+		if (!method.startsWith('textDocument/') || isLspFeatureEnabled(features, feature)) continue;
+		const capability = method.slice('textDocument/'.length);
+		delete textDocument[capability];
+		if (capability === 'diagnostic') delete textDocument.publishDiagnostics;
+	}
+	const workspace =
+		capabilities.workspace && typeof capabilities.workspace === 'object'
+			? { ...(capabilities.workspace as Record<string, unknown>) }
+			: {};
+	if (!isLspFeatureEnabled(features, 'workspaceSymbols')) delete workspace.symbol;
+	return {
+		...record,
+		params: {
+			...params,
+			capabilities: {
+				...capabilities,
+				textDocument,
+				workspace
+			}
+		}
+	} as unknown as IMonacoLspMessage;
+}
+
+class FeatureFilteredTransport implements IMonacoLspNativeTransport {
+	readonly state;
+
+	constructor(
+		private readonly transport: IMonacoLspNativeTransport,
+		private readonly features: false | IMonacoLspFeatureOptions
+	) {
+		this.state = transport.state;
+	}
+
+	setListener(listener: MessageListener) {
+		this.transport.setListener(
+			listener
+				? (message) => {
+						const filtered = filterIncomingLspMessage(message, this.features);
+						if (filtered) listener(filtered);
+					}
+				: listener
+		);
+	}
+
+	send(message: IMonacoLspMessage) {
+		return this.transport.send(filterOutgoingLspMessage(message, this.features));
+	}
+
+	toString() {
+		return `FeatureFiltered/${this.transport.toString()}`;
 	}
 }
 
@@ -573,7 +762,12 @@ export default async function (
 	options?: IMonacoLspClientOptions
 ) {
 	registerLanguage(language);
-	const { transport, dispose } = resolveTransport(withClientOptions(connection, options));
+	const resolved = resolveTransport(withClientOptions(connection, options));
+	const transport =
+		options?.features === undefined
+			? resolved.transport
+			: new FeatureFilteredTransport(resolved.transport, options.features);
+	const { dispose } = resolved;
 	let languageClient: ManagedMonacoLspClient;
 	try {
 		languageClient = new ManagedMonacoLspClient(transport);

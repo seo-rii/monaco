@@ -10,6 +10,11 @@
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
 	} from '$lib/MonacoTypes.js';
+	import type {
+		IMonacoBuiltinFeatures,
+		IMonacoExtensions,
+		IMonacoRuntime
+	} from '$lib/extensions/index.js';
 
 	export type IMonacoDiffEditorSide = 'original' | 'modified';
 
@@ -39,7 +44,7 @@
 		model: M.editor.IModel;
 	}
 
-	interface IMonacoDiff {
+	export interface IMonacoDiffProps {
 		setting?: IMonacoDiffSetting;
 		readonly?: boolean;
 		provider?: (id: string) => Promise<IMonacoDiffProviderResult>;
@@ -61,6 +66,9 @@
 		markerOwner?: string;
 		snippets?: IMonacoSnippetMap;
 		registerSnippets?: IMonacoSnippetLoader;
+		features?: IMonacoBuiltinFeatures;
+		extensions?: IMonacoExtensions;
+		runtime?: IMonacoRuntime;
 		onchange?: (model: M.editor.IDiffEditorModel) => void;
 		oninput?: (event: IMonacoDiffInputEvent) => void;
 		oncursor?: (event: IMonacoDiffCursorEvent) => void;
@@ -93,6 +101,9 @@
 		markerOwner,
 		snippets,
 		registerSnippets,
+		features,
+		extensions,
+		runtime,
 		onchange,
 		oninput,
 		oncursor,
@@ -101,7 +112,7 @@
 		onupdate,
 		onload,
 		onerror
-	}: IMonacoDiff = $props();
+	}: IMonacoDiffProps = $props();
 
 	let MonacoDiffInner: typeof import('./MonacoDiffInner.svelte').default | null = $state(null);
 
@@ -140,6 +151,9 @@
 		{markerOwner}
 		{snippets}
 		{registerSnippets}
+		{features}
+		{extensions}
+		{runtime}
 		{onchange}
 		{oninput}
 		{oncursor}

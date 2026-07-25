@@ -78,8 +78,37 @@ export interface IMonacoLspTraceEvent {
 
 export interface IMonacoLspClientOptions {
 	documentSync?: boolean | IMonacoLspDocumentSyncOptions;
+	/** Selectively advertise and install native Monaco LSP features. All features default to true. */
+	features?: false | IMonacoLspFeatureOptions;
 	model?: M.editor.ITextModel;
 	trace?: (event: IMonacoLspTraceEvent) => void;
+}
+
+export interface IMonacoLspFeatureOptions {
+	completion?: boolean;
+	hover?: boolean;
+	signatureHelp?: boolean;
+	definition?: boolean;
+	declaration?: boolean;
+	typeDefinition?: boolean;
+	implementation?: boolean;
+	references?: boolean;
+	documentHighlights?: boolean;
+	documentSymbols?: boolean;
+	rename?: boolean;
+	codeActions?: boolean;
+	codeLens?: boolean;
+	documentLinks?: boolean;
+	documentFormatting?: boolean;
+	rangeFormatting?: boolean;
+	onTypeFormatting?: boolean;
+	foldingRanges?: boolean;
+	selectionRanges?: boolean;
+	inlayHints?: boolean;
+	semanticTokens?: boolean;
+	diagnostics?: boolean;
+	workspaceSymbols?: boolean;
+	inlineCompletions?: boolean;
 }
 
 export interface IMonacoLspProviderContext {

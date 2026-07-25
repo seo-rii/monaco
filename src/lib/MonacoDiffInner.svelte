@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { Keybind, setTheme } from '$lib/extensions';
+	import {
+		createMonacoExtensionHost,
+		getMonacoRuntime,
+		isMonacoBuiltinFeatureEnabled,
+		Keybind,
+		setTheme
+	} from '$lib/extensions';
 	import {
 		createOwnedTextModelRegistry,
 		createErrorReporter,
@@ -49,6 +55,9 @@
 		markerOwner?: string;
 		snippets?: IMonacoSnippetMap;
 		registerSnippets?: IMonacoSnippetLoader;
+		features?: import('$lib/extensions').IMonacoBuiltinFeatures;
+		extensions?: import('$lib/extensions').IMonacoExtensions;
+		runtime?: import('$lib/extensions').IMonacoRuntime;
 		onchange?: (model: M.editor.IDiffEditorModel) => void;
 		oninput?: (event: IMonacoDiffInputEvent) => void;
 		oncursor?: (event: IMonacoDiffCursorEvent) => void;
@@ -80,6 +89,9 @@
 		markerOwner,
 		snippets,
 		registerSnippets,
+		features,
+		extensions,
+		runtime,
 		onchange,
 		oninput,
 		oncursor,
@@ -320,11 +332,13 @@
 	});
 
 	$effect(() =>
-		createSnippetRegistry({
-			snippets,
-			registerSnippets,
-			reportError
-		})
+		isMonacoBuiltinFeatureEnabled(features, 'snippets')
+			? createSnippetRegistry({
+					snippets,
+					registerSnippets,
+					reportError
+				})
+			: undefined
 	);
 
 	let _keybind: M.IDisposable | null | undefined = null;
@@ -333,7 +347,10 @@
 	$effect(() => {
 		const modifiedEditor = loaded ? ins?.getModifiedEditor() : undefined;
 		_keybind =
-			modifiedEditor && message && setting.key
+			modifiedEditor &&
+			message &&
+			setting.key &&
+			isMonacoBuiltinFeatureEnabled(features, 'keybindings')
 				? Keybind[setting.key]?.(modifiedEditor, message)
 				: null;
 		return () => _keybind?.dispose?.();
@@ -341,7 +358,11 @@
 
 	$effect(() => {
 		const modifiedEditor = loaded ? ins?.getModifiedEditor() : undefined;
-		if (!modifiedEditor || !setting.power) {
+		if (
+			!modifiedEditor ||
+			!setting.power ||
+			!isMonacoBuiltinFeatureEnabled(features, 'powerMode')
+		) {
 			_powermode?.dispose?.();
 			_powermode = null;
 			return;
@@ -369,7 +390,13 @@
 	});
 
 	$effect(() => {
-		if (!loaded || !model?.modified || (!lspProvider && !lspurl)) return;
+		if (
+			!loaded ||
+			!model?.modified ||
+			(!lspProvider && !lspurl) ||
+			!isMonacoBuiltinFeatureEnabled(features, 'lsp')
+		)
+			return;
 		return startMonacoLspSession({
 			model: model.modified,
 			provider: lspProvider,
@@ -378,6 +405,32 @@
 			onStatus: onlspstatus,
 			onError: reportError
 		});
+	});
+
+	$effect(() => {
+		if (!loaded || !ins) return;
+		const selectedRuntime = runtime ?? getMonacoRuntime();
+		const original = ins.getOriginalEditor();
+		const modified = ins.getModifiedEditor();
+		const extensionHost = createMonacoExtensionHost({
+			monaco: M,
+			kind: 'diff',
+			host: ins,
+			editors: new Map([
+				['original' as const, original],
+				['modified' as const, modified]
+			]),
+			getActive: () => active,
+			reportError
+		});
+		const applyExtensions = () =>
+			extensionHost.setExtensions([...selectedRuntime.extensions, ...(extensions ?? [])]);
+		const runtimeDisposable = selectedRuntime.onDidChange(applyExtensions);
+		applyExtensions();
+		return () => {
+			runtimeDisposable.dispose();
+			extensionHost.dispose();
+		};
 	});
 
 	$effect(() => {

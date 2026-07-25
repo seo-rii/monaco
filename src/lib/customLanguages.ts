@@ -3397,6 +3397,7 @@ export const aonohakoLanguageDefinitions: LanguageDefinition[] = [
 ];
 
 export function registerAonohakoLanguages(monaco: MonacoModule = M) {
+	const disposables: M.IDisposable[] = [];
 	for (const definition of aonohakoLanguageDefinitions) {
 		if (!monaco.languages.getLanguages().some((language) => language.id === definition.id)) {
 			monaco.languages.register({
@@ -3405,31 +3406,38 @@ export function registerAonohakoLanguages(monaco: MonacoModule = M) {
 				extensions: definition.extensions
 			});
 		}
-		monaco.languages.setLanguageConfiguration(definition.id, {
-			comments: {
-				lineComment: definition.lineComment || undefined,
-				blockComment: definition.blockComment
-			},
-			brackets: definition.brackets || [
-				['{', '}'],
-				['[', ']'],
-				['(', ')']
-			],
-			autoClosingPairs: [
-				{ open: '{', close: '}' },
-				{ open: '[', close: ']' },
-				{ open: '(', close: ')' },
-				{ open: '"', close: '"' },
-				{ open: "'", close: "'" }
-			],
-			surroundingPairs: [
-				{ open: '{', close: '}' },
-				{ open: '[', close: ']' },
-				{ open: '(', close: ')' },
-				{ open: '"', close: '"' },
-				{ open: "'", close: "'" }
-			]
-		});
-		monaco.languages.setMonarchTokensProvider(definition.id, createTokenizer(definition));
+		disposables.push(
+			monaco.languages.setLanguageConfiguration(definition.id, {
+				comments: {
+					lineComment: definition.lineComment || undefined,
+					blockComment: definition.blockComment
+				},
+				brackets: definition.brackets || [
+					['{', '}'],
+					['[', ']'],
+					['(', ')']
+				],
+				autoClosingPairs: [
+					{ open: '{', close: '}' },
+					{ open: '[', close: ']' },
+					{ open: '(', close: ')' },
+					{ open: '"', close: '"' },
+					{ open: "'", close: "'" }
+				],
+				surroundingPairs: [
+					{ open: '{', close: '}' },
+					{ open: '[', close: ']' },
+					{ open: '(', close: ')' },
+					{ open: '"', close: '"' },
+					{ open: "'", close: "'" }
+				]
+			}),
+			monaco.languages.setMonarchTokensProvider(definition.id, createTokenizer(definition))
+		);
 	}
+	return {
+		dispose() {
+			for (const disposable of disposables.reverse()) disposable.dispose();
+		}
+	};
 }

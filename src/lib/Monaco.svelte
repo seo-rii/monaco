@@ -9,6 +9,11 @@
 		IMonacoSnippetLoader,
 		IMonacoSnippetMap
 	} from '$lib/MonacoTypes.js';
+	import type {
+		IMonacoBuiltinFeatures,
+		IMonacoExtensions,
+		IMonacoRuntime
+	} from '$lib/extensions/index.js';
 
 	export interface IMonacoSetting extends M.editor.IEditorConstructionOptions {
 		/** Enable vim or emacs keybinding mode */
@@ -24,7 +29,7 @@
 		event?: M.editor.IModelContentChangedEvent;
 	}
 
-	interface IMonaco {
+	export interface IMonacoProps {
 		setting?: IMonacoSetting;
 		readonly?: boolean;
 		provider?: (id: string) => Promise<[string, string, string]>;
@@ -44,6 +49,9 @@
 		markerOwner?: string;
 		snippets?: IMonacoSnippetMap;
 		registerSnippets?: IMonacoSnippetLoader;
+		features?: IMonacoBuiltinFeatures;
+		extensions?: IMonacoExtensions;
+		runtime?: IMonacoRuntime;
 		onchange?: (m: M.editor.IModel) => void;
 		oninput?: (event: IMonacoInputEvent) => void;
 		oncursor?: (position: M.Position) => void;
@@ -73,6 +81,9 @@
 		markerOwner,
 		snippets,
 		registerSnippets,
+		features,
+		extensions,
+		runtime,
 		onchange,
 		oninput,
 		oncursor,
@@ -80,7 +91,7 @@
 		onblur,
 		onload,
 		onerror
-	}: IMonaco = $props();
+	}: IMonacoProps = $props();
 
 	let Monaco: typeof import('./MonacoInner.svelte').default | null = $state(null);
 
@@ -117,6 +128,9 @@
 		{markerOwner}
 		{snippets}
 		{registerSnippets}
+		{features}
+		{extensions}
+		{runtime}
 		{onchange}
 		{oninput}
 		{oncursor}
