@@ -48,6 +48,7 @@
 		"eslint": "^10.5.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.19.0",
+		"monaco-editor": "^0.55.1",
 		"prettier": "^3.8.4",
 		"prettier-plugin-svelte": "^4.1.1",
 		"publint": "^0.3.21",
@@ -61,10 +62,10 @@
 	"types": "./dist/index.d.ts",
 	"type": "module",
 	"peerDependencies": {
+		"monaco-editor": "^0.55.1",
 		"svelte": "^5.0.0"
 	},
 	"dependencies": {
-		"monaco-editor": "^0.55.1",
 		"monaco-emacs": "^0.3.0",
 		"monaco-vim": "^0.4.4",
 		"vscode-oniguruma": "^2.0.1",

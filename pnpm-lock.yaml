@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      monaco-editor:
-        specifier: ^0.55.1
-        version: 0.55.1
       monaco-emacs:
         specifier: ^0.3.0
         version: 0.3.0(monaco-editor@0.55.1)
@@ -54,6 +51,9 @@ importers:
       eslint-plugin-svelte:
         specifier: ^3.19.0
         version: 3.19.0(eslint@10.5.0)(svelte@5.56.3)
+      monaco-editor:
+        specifier: ^0.55.1
+        version: 0.55.1
       prettier:
         specifier: ^3.8.4
         version: 3.8.4
