@@ -2,11 +2,7 @@ import Keybind from '$lib/extensions/keybind.js';
 import setTheme from '$lib/extensions/theme.js';
 
 export { Keybind, setTheme };
-export {
-	createMonacoExtensionHost,
-	createMonacoRuntime,
-	getMonacoRuntime
-} from './runtime.js';
+export { createMonacoExtensionHost, createMonacoRuntime, getMonacoRuntime } from './runtime.js';
 export {
 	createMonacoFeatureActions,
 	createMonacoLanguageFeaturesExtension,

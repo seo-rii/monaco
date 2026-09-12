@@ -26,8 +26,7 @@ export interface IMonacoProviderContribution<TProvider> {
 	provider: TProvider;
 }
 
-export interface IMonacoCodeActionContribution
-	extends IMonacoProviderContribution<M.languages.CodeActionProvider> {
+export interface IMonacoCodeActionContribution extends IMonacoProviderContribution<M.languages.CodeActionProvider> {
 	metadata?: M.languages.CodeActionProviderMetadata;
 }
 
@@ -135,15 +134,24 @@ export function createMonacoLanguageFeaturesExtension({
 				features.rangeFormatting,
 				monaco.languages.registerDocumentRangeFormattingEditProvider
 			);
-			register(features.onTypeFormatting, monaco.languages.registerOnTypeFormattingEditProvider);
+			register(
+				features.onTypeFormatting,
+				monaco.languages.registerOnTypeFormattingEditProvider
+			);
 			register(features.inlayHints, monaco.languages.registerInlayHintsProvider);
-			register(features.semanticTokens, monaco.languages.registerDocumentSemanticTokensProvider);
+			register(
+				features.semanticTokens,
+				monaco.languages.registerDocumentSemanticTokensProvider
+			);
 			register(
 				features.rangeSemanticTokens,
 				monaco.languages.registerDocumentRangeSemanticTokensProvider
 			);
 			register(features.codeLens, monaco.languages.registerCodeLensProvider);
-			register(features.inlineCompletions, monaco.languages.registerInlineCompletionsProvider);
+			register(
+				features.inlineCompletions,
+				monaco.languages.registerInlineCompletionsProvider
+			);
 			for (const provider of asList(features.workspaceSymbols)) {
 				workspaceSymbolProviders.add(provider);
 				disposables.push({ dispose: () => workspaceSymbolProviders.delete(provider) });

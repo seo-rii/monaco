@@ -19,11 +19,7 @@ The package includes `vscode-textmate`, `vscode-oniguruma`, `y-monaco`, and Yjs,
 
 <Monaco
 	active="main.py"
-	provider={async () => [
-		'print("hello")',
-		'python',
-		'file:///workspace/main.py'
-	]}
+	provider={async () => ['print("hello")', 'python', 'file:///workspace/main.py']}
 	setting={{ automaticLayout: true }}
 />
 ```

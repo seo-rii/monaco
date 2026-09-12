@@ -3,9 +3,7 @@ import type * as M from 'monaco-editor';
 export type IMonacoEditorKind = 'code' | 'diff';
 export type IMonacoEditorSide = 'main' | 'original' | 'modified';
 export type IMonacoExtensionCleanup = void | M.IDisposable | (() => void);
-export type IMonacoExtensionResult =
-	| IMonacoExtensionCleanup
-	| Promise<IMonacoExtensionCleanup>;
+export type IMonacoExtensionResult = IMonacoExtensionCleanup | Promise<IMonacoExtensionCleanup>;
 
 export interface IMonacoExtensionContext {
 	monaco: typeof M;
@@ -204,9 +202,7 @@ export interface IMonacoRuntime extends M.IDisposable {
 	onDidChange(listener: () => void): M.IDisposable;
 }
 
-export function createMonacoRuntime(
-	initialExtensions: IMonacoExtensions = []
-): IMonacoRuntime {
+export function createMonacoRuntime(initialExtensions: IMonacoExtensions = []): IMonacoRuntime {
 	const extensions = new Map<string, IMonacoExtension>();
 	const listeners = new Set<() => void>();
 	let disposed = false;

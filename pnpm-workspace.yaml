@@ -1,4 +1,4 @@
 onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - '@sveltejs/kit'
-  - esbuild
+    - '@parcel/watcher'
+    - '@sveltejs/kit'
+    - esbuild

@@ -71,7 +71,9 @@ export default class Power {
 						},
 						200 + Math.random() * 200
 					);
-				} catch (e) {}
+				} catch {
+					// The model may be disposed while a decoration is being applied.
+				}
 			}
 		});
 		this.events.add(event);

@@ -371,7 +371,8 @@ function filterIncomingLspMessage(
 		const registrations = Array.isArray(params.registrations)
 			? params.registrations.filter((registration) => {
 					const method = (registration as Record<string, unknown>).method;
-					const feature = typeof method === 'string' ? registrationMethods[method] : undefined;
+					const feature =
+						typeof method === 'string' ? registrationMethods[method] : undefined;
 					return !feature || isLspFeatureEnabled(features, feature);
 				})
 			: params.registrations;

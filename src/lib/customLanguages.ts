@@ -1952,7 +1952,7 @@ export const aonohakoLanguageDefinitions: LanguageDefinition[] = [
 		aliases: ['Befunge'],
 		extensions: ['.bef', '.bf93'],
 		keywords: [],
-		extraRules: [[/[+\-*\/%!`><^v?_|"':\\$.,#pg&~@]+/, 'keyword']]
+		extraRules: [[/[+\-*/%!`><^v?_|"':\\$.,#pg&~@]+/, 'keyword']]
 	},
 	{
 		id: 'lolcode',
@@ -3238,7 +3238,7 @@ export const aonohakoLanguageDefinitions: LanguageDefinition[] = [
 		aliases: ['BQN'],
 		extensions: ['.bqn'],
 		keywords: [],
-		extraRules: [[/[𝕨𝕩𝔽𝔾𝕊𝕣𝕘𝕗⟨⟩←↩⊣⊢+×÷⋆√⌊⌈∧∨¬|≤<>≥=≠≡≢⊏⊑⊐⊒∊⍷⊔!˙˜˘¨⌜⁼´˝`]/, 'keyword']]
+		extraRules: [[/[𝕨𝕩𝔽𝔾𝕊𝕣𝕘𝕗⟨⟩←↩⊣⊢+×÷⋆√⌊⌈∧∨¬|≤<>≥=≠≡≢⊏⊑⊐⊒∊⍷⊔!˙˜˘¨⌜⁼´˝`]/u, 'keyword']]
 	},
 	{
 		id: 'apl',
@@ -3257,7 +3257,7 @@ export const aonohakoLanguageDefinitions: LanguageDefinition[] = [
 		keywords: [],
 		extraRules: [
 			[/[[:alnum:]_]+[.:]/, 'keyword'],
-			[/[=<>_+*%$~#:;,!\\/\\[\\]{}\"'`@^|&?]+/, 'operator']
+			[/[=<>_+*%$~#:;,!\\/\\[\\]{}"'`@^|&?]+/, 'operator']
 		]
 	},
 	{

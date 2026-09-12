@@ -11,9 +11,7 @@ export const loadCssWorker: WorkerLoader = () =>
 export const loadHtmlWorker: WorkerLoader = () =>
 	import('monaco-editor/esm/vs/language/html/html.worker.js?worker') as Promise<WorkerModule>;
 export const loadTsWorker: WorkerLoader = () =>
-	import(
-		'monaco-editor/esm/vs/language/typescript/ts.worker.js?worker'
-	) as Promise<WorkerModule>;
+	import('monaco-editor/esm/vs/language/typescript/ts.worker.js?worker') as Promise<WorkerModule>;
 
 const workerModuleCache = new Map<WorkerLoader, Promise<WorkerModule>>();
 

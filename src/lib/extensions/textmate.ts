@@ -198,7 +198,9 @@ async function acquireTextMate(
 		};
 		installations.set(options, installation);
 	} else if (installation.monaco !== monaco) {
-		throw new Error('A TextMate options object cannot be shared across Monaco module instances');
+		throw new Error(
+			'A TextMate options object cannot be shared across Monaco module instances'
+		);
 	}
 	installation.references += 1;
 	let disposed = false;

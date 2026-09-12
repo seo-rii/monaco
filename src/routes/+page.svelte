@@ -1,8 +1,5 @@
 <script lang="ts">
-	import Monaco, {
-		createLineHighlightDecoration,
-		type IMonacoDecoration
-	} from '$lib';
+	import Monaco, { createLineHighlightDecoration, type IMonacoDecoration } from '$lib';
 
 	let id = $state('test');
 	let lang = $state('python');
