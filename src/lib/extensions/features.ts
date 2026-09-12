@@ -31,15 +31,23 @@ export interface IMonacoCodeActionContribution
 	metadata?: M.languages.CodeActionProviderMetadata;
 }
 
+export interface IMonacoWorkspaceSymbol {
+	name: string;
+	kind: M.languages.SymbolKind;
+	tags?: readonly M.languages.SymbolTag[];
+	containerName?: string;
+	location: M.languages.Location;
+}
+
 export interface IMonacoWorkspaceSymbolProvider {
 	provideWorkspaceSymbols(
 		query: string,
 		token: M.CancellationToken
-	): M.languages.ProviderResult<M.languages.SymbolInformation[]>;
+	): M.languages.ProviderResult<IMonacoWorkspaceSymbol[]>;
 	resolveWorkspaceSymbol?(
-		symbol: M.languages.SymbolInformation,
+		symbol: IMonacoWorkspaceSymbol,
 		token: M.CancellationToken
-	): M.languages.ProviderResult<M.languages.SymbolInformation>;
+	): M.languages.ProviderResult<IMonacoWorkspaceSymbol>;
 }
 
 type Contributions<T> =
@@ -158,7 +166,7 @@ const neverCancelled: M.CancellationToken = {
 export async function queryMonacoWorkspaceSymbols(
 	query: string,
 	token: M.CancellationToken = neverCancelled
-): Promise<M.languages.SymbolInformation[]> {
+): Promise<IMonacoWorkspaceSymbol[]> {
 	const results = await Promise.all(
 		[...workspaceSymbolProviders].map((provider) =>
 			Promise.resolve(provider.provideWorkspaceSymbols(query, token))

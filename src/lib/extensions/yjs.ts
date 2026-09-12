@@ -91,12 +91,15 @@ async function createBinding(
 	const actionDisposables: M.IDisposable[] = [];
 	if (undoManager && config.undo && config.undo.keybindings !== false) {
 		const actionPrefix = `seorii.yjs.${context.side}`;
+		const activeUndoManager = undoManager;
 		actionDisposables.push(
 			context.editor.addAction({
 				id: `${actionPrefix}.undo`,
 				label: 'Yjs Undo',
 				keybindings: [context.monaco.KeyMod.CtrlCmd | context.monaco.KeyCode.KeyZ],
-				run: () => undoManager?.undo()
+				run: () => {
+					activeUndoManager.undo();
+				}
 			}),
 			context.editor.addAction({
 				id: `${actionPrefix}.redo`,
@@ -107,7 +110,9 @@ async function createBinding(
 						context.monaco.KeyCode.KeyZ,
 					context.monaco.KeyMod.CtrlCmd | context.monaco.KeyCode.KeyY
 				],
-				run: () => undoManager?.redo()
+				run: () => {
+					activeUndoManager.redo();
+				}
 			})
 		);
 	}

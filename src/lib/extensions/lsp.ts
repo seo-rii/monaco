@@ -308,7 +308,7 @@ const serverCapabilityKeys: Partial<Record<keyof IMonacoLspFeatureOptions, strin
 	inlineCompletions: 'inlineCompletionProvider'
 };
 
-const registrationMethods: Partial<Record<string, keyof IMonacoLspFeatureOptions>> = {
+const registrationMethods: Record<string, keyof IMonacoLspFeatureOptions> = {
 	'textDocument/completion': 'completion',
 	'textDocument/hover': 'hover',
 	'textDocument/signatureHelp': 'signatureHelp',

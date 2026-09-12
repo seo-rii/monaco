@@ -36,5 +36,6 @@ export type {
 	IMonacoLanguageFeatureContributions,
 	IMonacoLanguageFeaturesExtensionOptions,
 	IMonacoProviderContribution,
+	IMonacoWorkspaceSymbol,
 	IMonacoWorkspaceSymbolProvider
 } from './features.js';

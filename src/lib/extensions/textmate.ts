@@ -75,10 +75,18 @@ async function resolveWasm(wasm: IMonacoTextMateWasm) {
 	return typeof wasm === 'function' ? await wasm() : wasm;
 }
 
+function isOnigurumaOptions(
+	wasm: OnigurumaOptions | ArrayBuffer | ArrayBufferView | Response
+): wasm is OnigurumaOptions {
+	return typeof wasm === 'object' && wasm !== null && ('data' in wasm || 'instantiator' in wasm);
+}
+
 function loadOniguruma(wasm: IMonacoTextMateWasm) {
 	onigurumaPromise ??= (async () => {
 		const oniguruma = await import('vscode-oniguruma');
-		await oniguruma.loadWASM(await resolveWasm(wasm));
+		const resolvedWasm = await resolveWasm(wasm);
+		if (isOnigurumaOptions(resolvedWasm)) await oniguruma.loadWASM(resolvedWasm);
+		else await oniguruma.loadWASM(resolvedWasm);
 		return {
 			createOnigScanner: (patterns: string[]) => new oniguruma.OnigScanner(patterns),
 			createOnigString: (value: string) => new oniguruma.OnigString(value)
@@ -108,7 +116,7 @@ async function installTextMate(
 		onigLib: loadOniguruma(options.wasm),
 		theme: options.theme,
 		colorMap: options.colorMap,
-		loadGrammar: options.loadGrammar,
+		loadGrammar: async (scopeName) => await options.loadGrammar(scopeName),
 		getInjections: options.getInjections
 	});
 	if (options.applyColorMap !== false && options.theme) {

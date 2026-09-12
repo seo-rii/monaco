@@ -77,6 +77,7 @@ export type {
 	IMonacoModelExtensionContext,
 	IMonacoProviderContribution,
 	IMonacoRuntime,
+	IMonacoWorkspaceSymbol,
 	IMonacoWorkspaceSymbolProvider
 } from './extensions/index.js';
 export type { editor } from 'monaco-editor';
