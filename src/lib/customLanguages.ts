@@ -1,4 +1,5 @@
-import * as M from 'monaco-editor';
+import { languages as defaultLanguages } from 'monaco-editor';
+import type * as M from 'monaco-editor';
 
 type MonacoModule = typeof import('monaco-editor');
 
@@ -29,7 +30,9 @@ const NUMBER_RULES: M.languages.IMonarchLanguageRule[] = [
 
 function wordList(words: string[]) {
 	return new RegExp(
-		`\\b(?:${words.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`
+		`(?:${words
+			.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/@/g, '@@'))
+			.join('|')})(?![\\w'])`
 	);
 }
 
@@ -3396,7 +3399,9 @@ export const aonohakoLanguageDefinitions: LanguageDefinition[] = [
 	}
 ];
 
-export function registerAonohakoLanguages(monaco: MonacoModule = M) {
+export function registerAonohakoLanguages(
+	monaco: MonacoModule = { languages: defaultLanguages } as MonacoModule
+) {
 	const disposables: M.IDisposable[] = [];
 	for (const definition of aonohakoLanguageDefinitions) {
 		if (!monaco.languages.getLanguages().some((language) => language.id === definition.id)) {

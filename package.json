@@ -10,7 +10,7 @@
 		"prepublishOnly": "npm run package",
 		"release:npm": "node scripts/release-npm.mjs",
 		"test:release": "node --test scripts/release-npm.test.mjs",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && node --test scripts/custom-languages.test.mjs",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write ."
